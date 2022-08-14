@@ -1,0 +1,130 @@
+cabal-version:      3.6
+name:               metalparsec
+version:            0.1.0.0
+
+-- A short (one-line) description of the package.
+-- synopsis:
+
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+-- license:
+author:             brian
+maintainer:         littlebubu.shu@gmail.com
+
+-- A copyright notice.
+-- copyright:
+-- category:
+extra-source-files: CHANGELOG.md
+
+common common-options
+  -- yay
+  default-language: GHC2021
+  default-extensions:
+    FlexibleInstances,
+    FlexibleContexts,
+    InstanceSigs,
+    MultiParamTypeClasses,
+    ConstraintKinds,
+    LambdaCase,
+    EmptyCase,
+    TupleSections,
+    BangPatterns,
+    TypeApplications,
+    StandaloneDeriving,
+    OverloadedStrings,
+    RankNTypes,
+    ScopedTypeVariables,
+    NamedFieldPuns,
+    DuplicateRecordFields,
+    OverloadedRecordDot,
+    GeneralizedNewtypeDeriving,
+    DataKinds,
+    ConstraintKinds,
+    TypeApplications,
+    KindSignatures,
+    StandaloneKindSignatures,
+    DeriveFoldable,
+    DeriveFunctor,
+    DeriveGeneric,
+    DeriveDataTypeable,
+    DeriveLift,
+    DeriveTraversable ,
+    GeneralizedNewtypeDeriving,
+    GADTs,
+    PolyKinds,
+    ViewPatterns,
+    PatternSynonyms,
+    TypeFamilies,
+    TypeFamilyDependencies,
+    FunctionalDependencies,
+    ExistentialQuantification,
+    TypeOperators,
+    OverloadedLabels,
+    ImportQualifiedPost,
+    ImpredicativeTypes,
+    MagicHash,
+    UnboxedTuples,
+    UnliftedNewtypes,
+  ghc-options:
+    -Wall
+    -Wincomplete-record-updates
+    -Wredundant-constraints
+    -Wno-name-shadowing
+    -Wno-unticked-promoted-constructors
+    -- until OverloadedRecordUpdate stabilizes
+    -Wno-ambiguous-fields
+    -Werror=incomplete-patterns
+    -Werror=incomplete-uni-patterns
+    -Werror=missing-methods
+  build-depends:
+    base >= 4.12 && <5,
+    primitive ^>= 0.7.4.0,
+    template-haskell ^>= 2.18.0.0,
+    text ^>= 2.0,
+    bytestring,
+
+library
+  import: common-options
+  hs-source-dirs: src
+  exposed-modules:
+    Text.Metalparsec
+    Text.Metalparsec.Util
+    Text.Metalparsec.TH
+    Text.Metalparsec.Chunk
+    Text.Metalparsec.Parser
+    Text.Metalparsec.Combinators
+  ghc-options: -O2
+
+common rtsopts
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+test-suite metalparsec-test
+  import: common-options, rtsopts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Spec.hs
+  other-modules:
+  build-depends:
+    metalparsec,
+    tasty ^>= 1.4.2.3,
+    tasty-hunit ^>= 0.10.0.3,
+    QuickCheck ^>= 2.14.2,
+    quickcheck-instances ^>= 0.3.27,
+
+benchmark metalparsec-bench
+  import: common-options, rtsopts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Main.hs
+  build-depends:
+    metalparsec,
+    tasty-bench ^>= 0.3.2,
+  ghc-options: -O2
