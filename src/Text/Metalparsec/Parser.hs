@@ -3,7 +3,9 @@
 
 module Text.Metalparsec.Parser where
 
-import Control.Applicative (liftA2)
+import Control.Applicative (Alternative (..), liftA2)
+import Control.Monad (MonadPlus)
+import Control.Monad qualified as Monad
 import Data.Bifoldable
 import Data.Bifunctor
 import Data.Bitraversable
@@ -12,7 +14,7 @@ import Text.Metalparsec.Chunk qualified as Chunk
 
 newtype Parser s p u e a = Parser
   { runParser# ::
-      Chunk.Unlifted s ->
+      Chunk.BaseArray# s ->
       Int# ->
       Chunk.Pos# p ->
       Int# ->
@@ -97,6 +99,22 @@ instance Monoid a => Monoid (Parser s p u e a) where
   mempty = pure mempty
   {-# INLINE mempty #-}
 
+instance Alternative (Parser s p u e) where
+  empty = Parser $ \_ _ _ _ _ -> Fail#
+  {-# INLINE empty #-}
+
+  Parser f <|> Parser g = Parser $ \s l p i u ->
+    case f s l p i u of
+      Fail# -> g s l p i u
+      x -> x
+  {-# INLINE (<|>) #-}
+
+instance MonadPlus (Parser s p u e) where
+  mzero = empty
+  {-# INLINE mzero #-}
+  mplus = (<|>)
+  {-# INLINE mplus #-}
+
 -- | Higher-level boxed data type for parsing results.
 data Result e a
   = -- | Contains return value and unconsumed input.
@@ -105,7 +123,13 @@ data Result e a
     Fail
   | -- | Unrecoverble-by-default error.
     Err e
-  deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
+  deriving (Show, Eq, Ord, Foldable, Traversable)
+
+instance Functor (Result e) where
+  fmap f (OK x) = OK (f x)
+  fmap _f Fail = Fail
+  fmap _f (Err e) = (Err e)
+  {-# INLINE fmap #-}
 
 instance Applicative (Result e) where
   pure = OK

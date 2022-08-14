@@ -22,6 +22,8 @@ string s =
   ||]
   where
     len = ByteArray.sizeofByteArray $ textToByteArray $ T.pack s
+    -- don't bother changing the positions in between
+    -- just calculate the position and then set it at the end
     bss = encodeCharUtf8 <$> s
     go (bs : bss) = [||$$(unsafeCharBytes bs) *> $$(go bss)||]
     go [] = [||pure ()||]
@@ -45,7 +47,7 @@ unsafeCharBytes bs =
   [||
   case $$(unsafeScanListUnchecked @Word8 bs) of
     (p :: Parser chunk p u e a) ->
-      p *> (Parser $ \_ _ p i u -> OK# (Chunk.nextCharPos (proxy# :: Proxy# chunk) p) i u ())
+      p *> (Parser $ \_ _ p i u -> OK# (Chunk.nextCharPos (proxy# :: Proxy# chunk) 1# p) i u ())
   ||]
 
 unsafeCharBytes' :: [Word8] -> Q Exp
@@ -56,10 +58,10 @@ unsafeCharBytes' bs =
         p *> (Parser $ \_ _ p i u -> OK# (Chunk.nextCharPos (proxy# :: Proxy# chunk) p) i u ())
     |]
 
-unsafeScanListUnchecked :: (TH.Lift a, Chunk.Token s ~ a, Chunk s p) => [a] -> Code Q (Parser s p u e ())
+unsafeScanListUnchecked :: (TH.Lift a, Chunk.TokenTag s ~ a, Chunk s p) => [a] -> Code Q (Parser s p u e ())
 unsafeScanListUnchecked = go
   where
-    go (x : xs) = [||unsafeScan1 x *> $$(go xs)||]
+    go (x : xs) = [||unsafeTake1 x *> $$(go xs)||]
     go [] = [||pure ()||]
 
 unsafeScanListUnchecked' :: TH.Lift a => [a] -> Q Exp

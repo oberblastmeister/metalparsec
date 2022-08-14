@@ -1,5 +1,8 @@
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
+
 module Text.Metalparsec.Combinators where
 
+import Control.Applicative qualified as Applicative
 import Data.Bits ((.&.))
 import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Text (Text)
@@ -8,6 +11,7 @@ import Data.Text.Array qualified
 import Data.Text.Internal qualified
 import GHC.Base (unsafeChr)
 import GHC.Exts
+import GHC.Exts qualified as Exts
 import GHC.Word
 import Text.Metalparsec.Chunk (ByteChunk, Chunk)
 import Text.Metalparsec.Chunk qualified as Chunk
@@ -22,15 +26,22 @@ ensureLen (I# len) = Parser $ \_s l p i u ->
 {-# INLINE ensureLen #-}
 
 -- | Unsafely read a concrete byte from the input. It's not checked that the input has
-unsafeScan1 :: forall chunk p u e. Chunk chunk p => Chunk.Token chunk -> Parser chunk p u e ()
-unsafeScan1 t =
+unsafeTake1 :: forall chunk p u e. Chunk chunk p => Chunk.TokenTag chunk -> Parser chunk p u e ()
+unsafeTake1 t =
   Parser
     ( \s _l p i u ->
         case Chunk.unsafeIndex# (proxy# @chunk) s i of
-          t' | t == t' -> OK# (Chunk.nextTokenPos t p) (i +# 1#) u ()
+          t' | t == Chunk.tokenTag t' -> OK# (Chunk.nextTokenPos t' p) (i +# 1#) u ()
           _ -> Fail#
     )
-{-# INLINE unsafeScan1 #-}
+{-# INLINE unsafeTake1 #-}
+
+take1 :: forall chunk p u e. (Chunk chunk p, Chunk.NotText chunk) => Chunk.TokenTag chunk -> Parser chunk p u e ()
+take1 t = ensureLen 1 *> unsafeTake1 t
+{-# INLINE take1 #-}
+
+-- takeN :: forall chunk p u e. (Chunk chunk p, Chunk.CanTake chunk) => Chunk.TokenTag chunk -> Int -> Parser chunk p u e ()
+-- takeN =
 
 -- | Parse an ASCII `Char` for which a predicate holds. Assumption: the predicate must only return
 --   `True` for ASCII-range characters. Otherwise this function might read a 128-255 range byte,
@@ -44,6 +55,7 @@ satisfyAscii f = Parser $ \s l p i u -> case l ==# i of
           OK#
             ( Chunk.nextCharPos
                 (proxy# @chunk)
+                1#
                 (Chunk.nextTokenPos b p)
             )
             (i +# 1#)
@@ -64,13 +76,11 @@ textToByteArray (Data.Text.Internal.Text (Data.Text.Array.ByteArray arr) _ _) = 
 --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
 --   combinator or a custom parser.
 many :: Parser s p u e a -> Parser s p u e [a]
-many (Parser f) = Parser go
+many (Parser f) = Parser (go [])
   where
-    go s l p i u = case f s l p i u of
-      OK# p i u a -> case go s l p i u of
-        OK# p i u as -> OK# p i u (a : as)
-        x -> x
-      Fail# -> OK# p i u []
+    go xs s l p i u = case f s l p i u of
+      OK# p i u x -> go (x : xs) s l p i u
+      Fail# -> OK# p i u xs
       Err# e -> Err# e
 {-# INLINE many #-}
 
@@ -99,10 +109,7 @@ some_ pa = pa >> many_ pa
 -- | Choose between two parsers. If the first parser fails, try the second one, but if the first one
 --   throws an error, propagate the error.
 (<|>) :: Parser s p u e a -> Parser s p u e a -> Parser s p u e a
-(<|>) (Parser f) (Parser g) = Parser $ \s l p i u ->
-  case f s l p i u of
-    Fail# -> g s l p i u
-    x -> x
+(<|>) = (Applicative.<|>)
 {-# INLINE (<|>) #-}
 
 infixr 6 <|>
@@ -124,20 +131,28 @@ eof = Parser $ \_s l p i u -> case l ==# i of
   _ -> Fail#
 {-# INLINE eof #-}
 
-runParser ::
+runParserWithAll ::
   forall chunk p u e a.
   Chunk chunk p =>
   Parser chunk p u e a ->
   u ->
   chunk ->
   Result e (a, u, Chunk.ChunkSlice chunk)
-runParser (Parser f) u s = case Chunk.toSlice# @chunk s of
+runParserWithAll (Parser f) u s = case Chunk.toSlice# @chunk s of
   Chunk.Slice# (# s#, off#, len# #) ->
     case f s# len# (Chunk.defPos (proxy# @(Chunk.Token chunk))) off# u of
       Err# e -> Err e
       Fail# -> Fail
       OK# _p i _u a -> OK (a, u, Chunk.convertSlice# (Chunk.Slice# (# s#, i, len# #)))
+{-# INLINEABLE runParserWithAll #-}
+
+runParser :: Chunk s p => Parser s p u e a -> u -> s -> Result e (a, u)
+runParser p u s = (\(x, u, _) -> (x, u)) <$> Exts.inline runParserWithAll p u s
 {-# INLINEABLE runParser #-}
+
+evalParser :: Chunk s p => Parser s p u e a -> u -> s -> Result e a
+evalParser p u s = fst <$> Exts.inline runParser p u s
+{-# INLINEABLE evalParser #-}
 
 isLatinLetter :: Char -> Bool
 isLatinLetter c = ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
