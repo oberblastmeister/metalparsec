@@ -5,21 +5,22 @@ module Text.Metalparsec.Chunk where
 
 import Data.ByteString.Short (ShortByteString)
 import Data.ByteString.Short qualified
-import Data.Char qualified as Char
 import Data.Kind (Type)
 import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Primitive.ByteArray qualified as ByteArray
 import Data.Text (Text)
-import Data.Text.Array qualified
-import Data.Text.Internal qualified
 import Data.Word (Word8)
+import GHC.Base (unsafeChr)
 import GHC.Exts
 import GHC.TypeLits qualified as TypeLits
+import Text.Metalparsec.Util (pattern UnsafeText#)
 
 newtype Pos# p = Pos# (# Int#, Int#, Int# #)
 
-addPos1# :: Pos# p -> Int# -> Pos# p
-addPos1# (Pos# (# off#, line#, col# #)) i# = Pos# (# off# +# i#, line#, col# #)
+type role Pos# nominal
+
+addPos1# :: Int# -> Pos# p -> Pos# p
+addPos1# i# (Pos# (# off#, line#, col# #)) = Pos# (# off# +# i#, line#, col# #)
 {-# INLINE addPos1# #-}
 
 pos1# :: Pos# p -> Int#
@@ -34,9 +35,9 @@ data Slice s = Slice
     len :: !Int
   }
 
-type Chunk c p = (BasicChunk c, TokenPos (Token c) p)
+type Chunk c p = (BasicChunk c, TokenPos p (Token c))
 
-type ByteChunk c p = (Chunk c p, Token c ~ Word8, NextCharPos p)
+type ByteChunk c p = (Chunk c p, Token c ~ Word8, BaseArray# c ~ ByteArray#, NextCharPos p)
 
 type TokenTag c = Tag (Token c)
 
@@ -45,16 +46,14 @@ type family NotText s where
   NotText Text = TypeLits.TypeError (TypeLits.Text "You cannot take individual bytes from Text")
   NotText _ = ()
 
-class Unlift s where
-  type Unlifted s = (r :: UnliftedType) | r -> s
-  unlift :: s -> Unlifted s
-  lift :: Unlifted s -> s
+class TokenPos p t | p -> t where
+  offsetPos# :: Pos# p -> Pos# p
+  nextTokenPos# :: t -> Pos# p -> Pos# p
+  liftPos# :: Pos# p -> Int# -> p
+  defPos# :: (# #) -> Pos# p
 
-class TokenPos t p where
-  type Pos t p = r | r -> t p
-  nextTokenPos :: t -> Pos# p -> Pos# p
-  constructPos :: Pos# p -> Int# -> Pos t p
-  defPos :: Proxy# t -> Pos# p
+class (TokenPos p Word8) => NextCharPos p where
+  nextCharPos :: Int# -> Pos# p -> Pos# p
 
 class Eq (Tag t) => GetTokenTag t where
   type Tag t = (r :: Type) | r -> t
@@ -63,9 +62,6 @@ class Eq (Tag t) => GetTokenTag t where
   default tokenTag :: (t ~ Tag t) => t -> Tag t
   tokenTag = id
   {-# INLINE tokenTag #-}
-
-class (TokenPos Word8 p) => NextCharPos p where
-  nextCharPos :: Proxy# t -> Int# -> Pos# p -> Pos# p
 
 class (GetTokenTag (Token s)) => BasicChunk s where
   type Token s :: Type
@@ -103,45 +99,50 @@ instance BasicChunk Text where
   type Token Text = Word8
   type BaseArray# Text = ByteArray#
   type ChunkSlice Text = Text
-  toSlice# (Data.Text.Internal.Text (Data.Text.Array.ByteArray bs#) (I# off#) (I# len#)) = Slice# (# bs#, off#, len# #)
-  convertSlice# (Slice# (# bs#, off#, len# #)) = (Data.Text.Internal.Text (Data.Text.Array.ByteArray bs#) (I# off#) (I# len#))
+  toSlice# (UnsafeText# bs# off# len#) = Slice# (# bs#, off#, len# #)
+  convertSlice# (Slice# (# bs#, off#, len# #)) = (UnsafeText# bs# off# len#)
   unsafeIndex# _ (ByteArray -> bs) (I# -> i) = ByteArray.indexByteArray bs i
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}
   {-# INLINE unsafeIndex# #-}
 
-data PosKind
-  = SimplePos
-  | LineColPos
-  | CustomPos
+newtype Pos = Pos {unPos :: Int}
 
-instance TokenPos Word8 'SimplePos where
-  type Pos Word8 'SimplePos = Int
-  nextTokenPos _ pos# = addPos1# pos# 1#
-  constructPos pos# _ = I# (pos1# pos#)
-  defPos _ = Pos# (# 0#, 0#, 0# #)
-  {-# INLINE nextTokenPos #-}
-  {-# INLINE constructPos #-}
-  {-# INLINE defPos #-}
+instance TokenPos Pos Word8 where
+  offsetPos# = addPos1# 1#
+  nextTokenPos# _ pos# = pos#
+  liftPos# pos# _ = Pos (I# (pos1# pos#))
+  defPos# _ = Pos# (# 0#, 0#, 0# #)
+  {-# INLINE nextTokenPos# #-}
+  {-# INLINE liftPos# #-}
+  {-# INLINE defPos# #-}
 
-instance NextCharPos 'SimplePos where
-  nextCharPos _ _ pos = pos
+instance NextCharPos Pos where
+  nextCharPos _ pos = pos
   {-# INLINE nextCharPos #-}
 
-data LineColSpan = LineColSpan {span :: Pos# 'LineColPos}
+incCharPos :: NextCharPos p => Pos# p -> Pos# p
+incCharPos = nextCharPos 1#
+{-# INLINE incCharPos #-}
 
-instance TokenPos Word8 'LineColPos where
-  type Pos Word8 'LineColPos = LineColSpan
-  nextTokenPos t (Pos# (# off#, line#, col# #)) =
-    if fromIntegral (Char.ord '\n') == t
+nextTokenCharPos :: (TokenPos p t, NextCharPos p) => t -> Pos# p -> Pos# p
+nextTokenCharPos t p = incCharPos (nextTokenPos# t p)
+{-# INLINE nextTokenCharPos #-}
+
+data LineCol = LineCol {off :: !Int, line :: !Int, col :: !Int}
+
+instance TokenPos LineCol Word8 where
+  offsetPos# = addPos1# 1#
+  nextTokenPos# t (Pos# (# off#, line#, col# #)) =
+    if '\n' == (unsafeChr (fromIntegral t))
       then Pos# (# off# +# 1#, line# +# 1#, 0# #)
       else Pos# (# off# +# 1#, line#, col# #)
-  defPos _ = Pos# (# 0#, 1#, 1# #)
-  constructPos pos _ = LineColSpan {span = pos}
-  {-# INLINE nextTokenPos #-}
-  {-# INLINE defPos #-}
-  {-# INLINE constructPos #-}
+  defPos# _ = Pos# (# 0#, 1#, 1# #)
+  liftPos# (Pos# (# I# -> off, I# -> line, I# -> col #)) _ = LineCol {off, line, col}
+  {-# INLINE nextTokenPos# #-}
+  {-# INLINE defPos# #-}
+  {-# INLINE liftPos# #-}
 
-instance NextCharPos LineColPos where
-  nextCharPos _ i# (Pos# (# off#, line#, col# #)) = (Pos# (# off#, line#, col# +# i# #))
+instance NextCharPos LineCol where
+  nextCharPos i# (Pos# (# off#, line#, col# #)) = (Pos# (# off#, line#, col# +# i# #))
   {-# INLINE nextCharPos #-}

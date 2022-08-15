@@ -70,6 +70,7 @@ common common-options
     MagicHash,
     UnboxedTuples,
     UnliftedNewtypes,
+    RoleAnnotations,
   ghc-options:
     -Wall
     -Wincomplete-record-updates
@@ -99,6 +100,9 @@ library
     Text.Metalparsec.Parser
     Text.Metalparsec.Combinators
   ghc-options: -O2
+  ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
+  ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
+  ghc-options: -dsuppress-uniques -dsuppress-timestamps
 
 common rtsopts
   ghc-options:

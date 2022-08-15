@@ -25,8 +25,8 @@ newtype Parser s p u e a = Parser
 type Res# p u e a = (# (# Chunk.Pos# p, Int#, u, a #) | (# #) | (# e #) #)
 
 -- | Contains return value and a pointer to the rest of the input buffer.
-pattern OK# :: Chunk.Pos# p -> Int# -> u -> a -> Res# p u e a
-pattern OK# p i u a = (# (# p, i, u, a #) | | #)
+pattern Ok# :: Chunk.Pos# p -> Int# -> u -> a -> Res# p u e a
+pattern Ok# p i u a = (# (# p, i, u, a #) | | #)
 
 -- | Constructor for errors which are by default non-recoverable.
 pattern Err# :: e -> Res# p u e a
@@ -36,38 +36,38 @@ pattern Err# e = (# | | (# e #) #)
 pattern Fail# :: Res# p u e a
 pattern Fail# = (# | (# #) | #)
 
-{-# COMPLETE OK#, Err#, Fail# #-}
+{-# COMPLETE Ok#, Err#, Fail# #-}
 
 unsafeCoerceRes# :: Res# p u e a -> Res# p u e b
 unsafeCoerceRes# = unsafeCoerce#
 
 instance Functor (Parser s p u e) where
   fmap f (Parser g) = Parser $ \s l p i u -> case g s l p i u of
-    OK# p i u a -> let !b = f a in OK# p i u b
+    Ok# p i u a -> let !b = f a in Ok# p i u b
     x -> unsafeCoerceRes# x
   {-# INLINE fmap #-}
 
 instance Applicative (Parser s p u e) where
-  pure a = Parser $ \_ _ p i u -> OK# p i u a
+  pure a = Parser $ \_ _ p i u -> Ok# p i u a
   {-# INLINE pure #-}
 
   Parser ff <*> Parser fa = Parser $ \s l p i u -> case ff s l p i u of
-    OK# p i u f -> case fa s l p i u of
-      OK# p i u a -> let !b = f a in OK# p i u b
+    Ok# p i u f -> case fa s l p i u of
+      Ok# p i u a -> let !b = f a in Ok# p i u b
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
   {-# INLINE (<*>) #-}
 
   Parser fa <* Parser fb = Parser $ \s l p i u -> case fa s l p i u of
-    OK# p i u a -> case fb s l p i u of
-      OK# p i u _ -> OK# p i u a
+    Ok# p i u a -> case fb s l p i u of
+      Ok# p i u _ -> Ok# p i u a
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
   {-# INLINE (<*) #-}
 
   Parser fa *> Parser fb = Parser $ \s l p i u -> case fa s l p i u of
-    OK# p i u _ -> case fb s l p i u of
-      OK# p i u b -> OK# p i u b
+    Ok# p i u _ -> case fb s l p i u of
+      Ok# p i u b -> Ok# p i u b
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
   {-# INLINE (*>) #-}
@@ -77,7 +77,7 @@ instance Monad (Parser s p u e) where
   {-# INLINE return #-}
 
   Parser fa >>= f = Parser $ \s l p i u -> case fa s l p i u of
-    OK# p i u a -> runParser# (f a) s l p i u
+    Ok# p i u a -> runParser# (f a) s l p i u
     x -> unsafeCoerce# x
   {-# INLINE (>>=) #-}
 
@@ -86,7 +86,7 @@ instance Monad (Parser s p u e) where
 
 instance Bifunctor (Parser s p u) where
   bimap f g (Parser m) = Parser $ \s l p i u -> case m s l p i u of
-    OK# p i u a -> OK# p i u (g a)
+    Ok# p i u a -> Ok# p i u (g a)
     Fail# -> Fail#
     Err# e -> Err# (f e)
   {-# INLINE bimap #-}
@@ -103,11 +103,35 @@ instance Alternative (Parser s p u e) where
   empty = Parser $ \_ _ _ _ _ -> Fail#
   {-# INLINE empty #-}
 
+  -- \| Don't use this! @<|>@ is left associative, which is slower.
   Parser f <|> Parser g = Parser $ \s l p i u ->
     case f s l p i u of
       Fail# -> g s l p i u
       x -> x
   {-# INLINE (<|>) #-}
+
+  -- \| Run a parser zero or more times, collect the results in a list. Note: for optimal performance,
+  --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
+  --   combinator or a custom parser.
+  many (Parser f) = Parser (go [])
+    where
+      go xs s l p i u = case f s l p i u of
+        Ok# p i u x -> go (x : xs) s l p i u
+        Fail# -> Ok# p i u $! reverse xs
+        Err# e -> Err# e
+  {-# INLINE many #-}
+
+  -- \| Run a parser one or more times, collect the results in a list. Note: for optimal performance,
+  --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
+  --   combinator or a custom parser.
+  -- some p = (:) <$> p <*> many p
+  some p@(Parser f) = p >>= \x -> Parser (go [x])
+    where
+      go xs s l p i u = case f s l p i u of
+        Ok# p i u x -> go (x : xs) s l p i u
+        Fail# -> Ok# p i u $! reverse xs
+        Err# e -> Err# e
+  {-# INLINE some #-}
 
 instance MonadPlus (Parser s p u e) where
   mzero = empty

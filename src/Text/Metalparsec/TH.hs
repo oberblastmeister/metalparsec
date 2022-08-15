@@ -47,7 +47,7 @@ unsafeCharBytes bs =
   [||
   case $$(unsafeScanListUnchecked @Word8 bs) of
     (p :: Parser chunk p u e a) ->
-      p *> (Parser $ \_ _ p i u -> OK# (Chunk.nextCharPos (proxy# :: Proxy# chunk) 1# p) i u ())
+      p *> (Parser $ \_ _ p i u -> Ok# (Chunk.nextCharPos 1# p) i u ())
   ||]
 
 unsafeCharBytes' :: [Word8] -> Q Exp
@@ -55,7 +55,7 @@ unsafeCharBytes' bs =
   [|
     case $(unsafeScanListUnchecked' bs) of
       (p :: Parser chunk p u e a) ->
-        p *> (Parser $ \_ _ p i u -> OK# (Chunk.nextCharPos (proxy# :: Proxy# chunk) p) i u ())
+        p *> (Parser $ \_ _ p i u -> Ok# (Chunk.nextCharPos (proxy# :: Proxy# chunk) p) i u ())
     |]
 
 unsafeScanListUnchecked :: (TH.Lift a, Chunk.TokenTag s ~ a, Chunk s p) => [a] -> Code Q (Parser s p u e ())
@@ -74,7 +74,7 @@ unsafeScanListUnchecked' = go
 -- unsafeScanPrim :: (Prim a, Eq a) => a -> Parser ByteArray# p u e ()
 -- unsafeScanPrim t = Parser $ \s l p i u ->
 --   case PrimArray.indexPrimArray (PrimArray s) (I# i) of
---     t' | t == t' -> OK# p (i +# (sizeOf# t)) u ()
+--     t' | t == t' -> Ok# p (i +# (sizeOf# t)) u ()
 --     _ -> Fail#
 -- {-# INLINE unsafeScanPrim #-}
 
@@ -88,7 +88,7 @@ unsafeScanListUnchecked' = go
 -- scan16# (W16# c) = Parser $ \fp !r eob s n ->
 --   case indexWord16OffAddr# s 0# of
 --     c' -> case eqWord16'# c c' of
---       1# -> OK# () (plusAddr# s 2#) n
+--       1# -> Ok# () (plusAddr# s 2#) n
 --       _ -> Fail#
 -- {-# INLINE scan16# #-}
 
@@ -98,7 +98,7 @@ unsafeScanListUnchecked' = go
 -- scan32# (W32# c) = Parser $ \fp !r eob s n ->
 --   case indexWord32OffAddr# s 0# of
 --     c' -> case eqWord32'# c c' of
---       1# -> OK# () (plusAddr# s 4#) n
+--       1# -> Ok# () (plusAddr# s 4#) n
 --       _ -> Fail#
 -- {-# INLINE scan32# #-}
 
@@ -108,7 +108,7 @@ unsafeScanListUnchecked' = go
 -- scan64# (W# c) = Parser $ \fp !r eob s n ->
 --   case indexWord64OffAddr# s 0# of
 --     c' -> case eqWord# c c' of
---       1# -> OK# () (plusAddr# s 8#) n
+--       1# -> Ok# () (plusAddr# s 8#) n
 --       _ -> Fail#
 -- {-# INLINE scan64# #-}
 
