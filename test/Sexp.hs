@@ -5,6 +5,8 @@ module Sexp where
 import Data.Text (Text)
 import Text.Metalparsec
 -- import Text.Metalparsec.Chunk (ByteChunk)
+
+import Text.Metalparsec.Chunk (ByteChunk)
 import Text.Metalparsec.TH
 
 type P e a = Parsec Text Pos () e a
@@ -47,11 +49,12 @@ numeral = some_ (satisfyAscii isAsciiDigit) >> ws
 comma :: P e ()
 comma = $$(string ",") >> ws
 
-numcsv :: P e ()
-numcsv = numeral >> many_ (comma >> numeral) >> eof
+thingy :: ByteChunk chunk p => Parsec chunk p u e ()
+thingy = $$(string ",")
 
--- thingy :: ByteChunk chunk p => Parsec chunk p u e ()
--- thingy = $(string' ",")
+numcsv :: P e ()
+numcsv = numeral >> many_ (thingy >> numeral) >> eof
+
 
 runNumcsv :: Text -> Result () ((), ())
 runNumcsv = runParser numcsv ()
