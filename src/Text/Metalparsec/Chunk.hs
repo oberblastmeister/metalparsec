@@ -29,8 +29,8 @@ pos1# (Pos# (# off#, _, _ #)) = off#
 
 newtype Slice# s = Slice# (# BaseArray# s, Int#, Int# #)
 
-data Slice s = Slice
-  { chunk :: BaseArray# s,
+data Bytes = Bytes
+  { bytes :: !ByteArray,
     off :: !Int,
     len :: !Int
   }
@@ -47,38 +47,37 @@ type family NotText s where
   NotText _ = ()
 
 class TokenPos p t | p -> t where
-  offsetPos# :: Pos# p -> Pos# p
+  offsetPos# :: Int# -> Pos# p -> Pos# p
   nextTokenPos# :: t -> Pos# p -> Pos# p
   liftPos# :: Pos# p -> Int# -> p
   defPos# :: (# #) -> Pos# p
 
 class (TokenPos p Word8) => NextCharPos p where
-  nextCharPos :: Int# -> Pos# p -> Pos# p
+  offsetCharPos# :: Int# -> Pos# p -> Pos# p
 
 class Eq (Tag t) => GetTokenTag t where
   type Tag t = (r :: Type) | r -> t
-  type Tag t = t
   tokenTag :: t -> Tag t
-  default tokenTag :: (t ~ Tag t) => t -> Tag t
-  tokenTag = id
-  {-# INLINE tokenTag #-}
 
 class (GetTokenTag (Token s)) => BasicChunk s where
   type Token s :: Type
   type BaseArray# s :: UnliftedType
-  type ChunkSlice s = (r :: Type) | r -> s
+  type ChunkSlice s :: Type
   toSlice# :: s -> Slice# s
   convertSlice# :: Slice# s -> ChunkSlice s
   unsafeIndex# :: Proxy# s -> BaseArray# s -> Int# -> Token s
 
-instance GetTokenTag Word8
+instance GetTokenTag Word8 where
+  type Tag Word8 = Word8
+  tokenTag = id
+  {-# INLINE tokenTag #-}
 
 instance BasicChunk ByteArray where
   type Token ByteArray = Word8
   type BaseArray# ByteArray = ByteArray#
-  type ChunkSlice ByteArray = Slice ByteArray
+  type ChunkSlice ByteArray = Bytes
   toSlice# (ByteArray bs#) = Slice# (# bs#, 0#, 0# #)
-  convertSlice# (Slice# (# bs#, off#, len# #)) = Slice {chunk = bs#, off = I# off#, len = I# len#}
+  convertSlice# (Slice# (# ByteArray -> bytes, I# -> off, I# -> len #)) = Bytes {bytes, off, len}
   unsafeIndex# _ (ByteArray -> bs) (I# -> i) = ByteArray.indexByteArray bs i
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}
@@ -87,9 +86,9 @@ instance BasicChunk ByteArray where
 instance BasicChunk ShortByteString where
   type Token ShortByteString = Word8
   type BaseArray# ShortByteString = ByteArray#
-  type ChunkSlice ShortByteString = Slice ShortByteString
+  type ChunkSlice ShortByteString = Bytes
   toSlice# (Data.ByteString.Short.SBS bs#) = Slice# (# bs#, 0#, 0# #)
-  convertSlice# (Slice# (# bs#, off#, len# #)) = Slice {chunk = bs#, off = I# off#, len = I# len#}
+  convertSlice# (Slice# (# ByteArray -> bytes, I# -> off, I# -> len #)) = Bytes {bytes, off, len}
   unsafeIndex# _ (ByteArray -> bs) (I# -> i) = ByteArray.indexByteArray bs i
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}
@@ -109,7 +108,7 @@ instance BasicChunk Text where
 newtype Pos = Pos {unPos :: Int}
 
 instance TokenPos Pos Word8 where
-  offsetPos# = addPos1# 1#
+  offsetPos# = addPos1#
   nextTokenPos# _ pos# = pos#
   liftPos# pos# _ = Pos (I# (pos1# pos#))
   defPos# _ = Pos# (# 0#, 0#, 0# #)
@@ -118,21 +117,21 @@ instance TokenPos Pos Word8 where
   {-# INLINE defPos# #-}
 
 instance NextCharPos Pos where
-  nextCharPos _ pos = pos
-  {-# INLINE nextCharPos #-}
+  offsetCharPos# _ pos = pos
+  {-# INLINE offsetCharPos# #-}
 
-incCharPos :: NextCharPos p => Pos# p -> Pos# p
-incCharPos = nextCharPos 1#
-{-# INLINE incCharPos #-}
+incPosAscii :: NextCharPos p => Word8 -> Pos# p -> Pos# p
+incPosAscii t p = offsetCharPos# 1# (nextTokenPos# t (offsetPos# 1# p))
+{-# INLINE incPosAscii #-}
 
-nextTokenCharPos :: (TokenPos p t, NextCharPos p) => t -> Pos# p -> Pos# p
-nextTokenCharPos t p = incCharPos (nextTokenPos# t p)
-{-# INLINE nextTokenCharPos #-}
+incPosChar :: NextCharPos p => Int# -> Pos# p -> Pos# p
+incPosChar off# p = offsetCharPos# 1# (offsetPos# off# p)
+{-# INLINE incPosChar #-}
 
 data LineCol = LineCol {off :: !Int, line :: !Int, col :: !Int}
 
 instance TokenPos LineCol Word8 where
-  offsetPos# = addPos1# 1#
+  offsetPos# = addPos1#
   nextTokenPos# t (Pos# (# off#, line#, col# #)) =
     if '\n' == (unsafeChr (fromIntegral t))
       then Pos# (# off# +# 1#, line# +# 1#, 0# #)
@@ -144,5 +143,5 @@ instance TokenPos LineCol Word8 where
   {-# INLINE liftPos# #-}
 
 instance NextCharPos LineCol where
-  nextCharPos i# (Pos# (# off#, line#, col# #)) = (Pos# (# off#, line#, col# +# i# #))
-  {-# INLINE nextCharPos #-}
+  offsetCharPos# i# (Pos# (# off#, line#, col# #)) = (Pos# (# off#, line#, col# +# i# #))
+  {-# INLINE offsetCharPos# #-}

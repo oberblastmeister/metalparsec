@@ -85,7 +85,7 @@ common common-options
   build-depends:
     base >= 4.12 && <5,
     primitive ^>= 0.7.4.0,
-    template-haskell ^>= 2.18.0.0,
+    template-haskell,
     text ^>= 2.0,
     bytestring,
 
@@ -97,8 +97,9 @@ library
     Text.Metalparsec.Util
     Text.Metalparsec.TH
     Text.Metalparsec.Chunk
-    Text.Metalparsec.Parser
+    Text.Metalparsec.Internal
     Text.Metalparsec.Combinators
+    Text.Metalparsec.Char
   ghc-options: -O2
   ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
   ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
@@ -114,14 +115,15 @@ test-suite metalparsec-test
   import: common-options, rtsopts
   type: exitcode-stdio-1.0
   hs-source-dirs: test
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
+    Sexp
   build-depends:
     metalparsec,
     tasty ^>= 1.4.2.3,
     tasty-hunit ^>= 0.10.0.3,
-    QuickCheck ^>= 2.14.2,
-    quickcheck-instances ^>= 0.3.27,
+    -- QuickCheck ^>= 2.14.2,
+    -- quickcheck-instances ^>= 0.3.27,
 
 benchmark metalparsec-bench
   import: common-options, rtsopts

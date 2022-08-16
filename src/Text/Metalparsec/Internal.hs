@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Text.Metalparsec.Parser where
+module Text.Metalparsec.Internal where
 
 import Control.Applicative (Alternative (..), liftA2)
 import Control.Monad (MonadPlus)
@@ -12,8 +12,8 @@ import Data.Bitraversable
 import GHC.Exts
 import Text.Metalparsec.Chunk qualified as Chunk
 
-newtype Parser s p u e a = Parser
-  { runParser# ::
+newtype Parsec s p u e a = Parsec
+  { runParsec# ::
       Chunk.BaseArray# s ->
       Int# ->
       Chunk.Pos# p ->
@@ -41,79 +41,79 @@ pattern Fail# = (# | (# #) | #)
 unsafeCoerceRes# :: Res# p u e a -> Res# p u e b
 unsafeCoerceRes# = unsafeCoerce#
 
-instance Functor (Parser s p u e) where
-  fmap f (Parser g) = Parser $ \s l p i u -> case g s l p i u of
+instance Functor (Parsec s p u e) where
+  fmap f (Parsec g) = Parsec $ \s l p i u -> case g s l p i u of
     Ok# p i u a -> let !b = f a in Ok# p i u b
     x -> unsafeCoerceRes# x
   {-# INLINE fmap #-}
 
-instance Applicative (Parser s p u e) where
-  pure a = Parser $ \_ _ p i u -> Ok# p i u a
+instance Applicative (Parsec s p u e) where
+  pure a = Parsec $ \_ _ p i u -> Ok# p i u a
   {-# INLINE pure #-}
 
-  Parser ff <*> Parser fa = Parser $ \s l p i u -> case ff s l p i u of
+  Parsec ff <*> Parsec fa = Parsec $ \s l p i u -> case ff s l p i u of
     Ok# p i u f -> case fa s l p i u of
       Ok# p i u a -> let !b = f a in Ok# p i u b
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
   {-# INLINE (<*>) #-}
 
-  Parser fa <* Parser fb = Parser $ \s l p i u -> case fa s l p i u of
+  Parsec fa <* Parsec fb = Parsec $ \s l p i u -> case fa s l p i u of
     Ok# p i u a -> case fb s l p i u of
       Ok# p i u _ -> Ok# p i u a
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
   {-# INLINE (<*) #-}
 
-  Parser fa *> Parser fb = Parser $ \s l p i u -> case fa s l p i u of
+  Parsec fa *> Parsec fb = Parsec $ \s l p i u -> case fa s l p i u of
     Ok# p i u _ -> case fb s l p i u of
       Ok# p i u b -> Ok# p i u b
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
   {-# INLINE (*>) #-}
 
-instance Monad (Parser s p u e) where
+instance Monad (Parsec s p u e) where
   return = pure
   {-# INLINE return #-}
 
-  Parser fa >>= f = Parser $ \s l p i u -> case fa s l p i u of
-    Ok# p i u a -> runParser# (f a) s l p i u
+  Parsec fa >>= f = Parsec $ \s l p i u -> case fa s l p i u of
+    Ok# p i u a -> runParsec# (f a) s l p i u
     x -> unsafeCoerce# x
   {-# INLINE (>>=) #-}
 
   (>>) = (*>)
   {-# INLINE (>>) #-}
 
-instance Bifunctor (Parser s p u) where
-  bimap f g (Parser m) = Parser $ \s l p i u -> case m s l p i u of
+instance Bifunctor (Parsec s p u) where
+  bimap f g (Parsec m) = Parsec $ \s l p i u -> case m s l p i u of
     Ok# p i u a -> Ok# p i u (g a)
     Fail# -> Fail#
     Err# e -> Err# (f e)
   {-# INLINE bimap #-}
 
-instance Semigroup a => Semigroup (Parser s p u e a) where
+instance Semigroup a => Semigroup (Parsec s p u e a) where
   (<>) = liftA2 (<>)
   {-# INLINE (<>) #-}
 
-instance Monoid a => Monoid (Parser s p u e a) where
+instance Monoid a => Monoid (Parsec s p u e a) where
   mempty = pure mempty
   {-# INLINE mempty #-}
 
-instance Alternative (Parser s p u e) where
-  empty = Parser $ \_ _ _ _ _ -> Fail#
+instance Alternative (Parsec s p u e) where
+  empty = Parsec $ \_ _ _ _ _ -> Fail#
   {-# INLINE empty #-}
 
   -- \| Don't use this! @<|>@ is left associative, which is slower.
-  Parser f <|> Parser g = Parser $ \s l p i u ->
+  Parsec f <|> Parsec g = Parsec $ \s l p i u ->
     case f s l p i u of
       Fail# -> g s l p i u
       x -> x
   {-# INLINE (<|>) #-}
 
-  -- \| Run a parser zero or more times, collect the results in a list. Note: for optimal performance,
+  -- \| Run a Parsec zero or more times, collect the results in a list. Note: for optimal performance,
   --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
-  --   combinator or a custom parser.
-  many (Parser f) = Parser (go [])
+  --   combinator or a custom Parsec.
+  many (Parsec f) = Parsec (go [])
     where
       go xs s l p i u = case f s l p i u of
         Ok# p i u x -> go (x : xs) s l p i u
@@ -121,11 +121,11 @@ instance Alternative (Parser s p u e) where
         Err# e -> Err# e
   {-# INLINE many #-}
 
-  -- \| Run a parser one or more times, collect the results in a list. Note: for optimal performance,
+  -- \| Run a Parsec one or more times, collect the results in a list. Note: for optimal performance,
   --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
-  --   combinator or a custom parser.
+  --   combinator or a custom Parsec.
   -- some p = (:) <$> p <*> many p
-  some p@(Parser f) = p >>= \x -> Parser (go [x])
+  some p@(Parsec f) = p >>= \x -> Parsec (go [x])
     where
       go xs s l p i u = case f s l p i u of
         Ok# p i u x -> go (x : xs) s l p i u
@@ -133,7 +133,7 @@ instance Alternative (Parser s p u e) where
         Err# e -> Err# e
   {-# INLINE some #-}
 
-instance MonadPlus (Parser s p u e) where
+instance MonadPlus (Parsec s p u e) where
   mzero = empty
   {-# INLINE mzero #-}
   mplus = (<|>)
@@ -187,4 +187,9 @@ instance Bifoldable Result where
     Err e -> f e
     Fail -> mempty
 
-instance Bitraversable Result
+instance Bitraversable Result where
+  bitraverse f g = bisequenceA . bimap f g
+
+withParsecOff# :: (Int# -> Parsec s p u e a) -> Parsec s p u e a
+withParsecOff# f = Parsec $ \s l p i u -> runParsec# (f i) s l p i u
+{-# INLINE withParsecOff# #-}
