@@ -23,7 +23,7 @@ unsafeTake1 t =
   Parsec
     ( \s _l p i u ->
         case Chunk.unsafeIndex# (proxy# @chunk) s i of
-          t' | t == Chunk.tokenTag t' -> Ok# (Chunk.nextTokenPos# t' p) (i +# 1#) u ()
+          t' | t == Chunk.tokenTag t' -> Ok# (Chunk.onToken# t' p) (i +# 1#) u ()
           _ -> Fail#
     )
 {-# INLINE unsafeTake1 #-}
@@ -116,7 +116,7 @@ runParserWithAll ::
   Result e (a, u, Chunk.ChunkSlice chunk)
 runParserWithAll (Parsec f) u s = case Chunk.toSlice# @chunk s of
   Chunk.Slice# (# s#, off#, len# #) ->
-    case f s# len# (Chunk.defPos# (# #)) off# u of
+    case f s# len# (Chunk.defIntState# (# #)) off# u of
       Err# e -> Err e
       Fail# -> Fail
       Ok# _p i _u a -> OK (a, u, Chunk.convertSlice# @chunk (Chunk.Slice# (# s#, i, len# #)))

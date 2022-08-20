@@ -11,21 +11,22 @@ import Data.Bifunctor
 import Data.Bitraversable
 import GHC.Exts
 import Text.Metalparsec.Chunk qualified as Chunk
+import Text.Metalparsec.IntState (IntState#)
 
 newtype Parsec s p u e a = Parsec
   { runParsec# ::
       Chunk.BaseArray# s ->
       Int# ->
-      Chunk.Pos# p ->
+      IntState# p ->
       Int# ->
       u ->
       Res# p u e a
   }
 
-type Res# p u e a = (# (# Chunk.Pos# p, Int#, u, a #) | (# #) | (# e #) #)
+type Res# p u e a = (# (# IntState# p, Int#, u, a #) | (# #) | (# e #) #)
 
 -- | Contains return value and a pointer to the rest of the input buffer.
-pattern Ok# :: Chunk.Pos# p -> Int# -> u -> a -> Res# p u e a
+pattern Ok# :: IntState# p -> Int# -> u -> a -> Res# p u e a
 pattern Ok# p i u a = (# (# p, i, u, a #) | | #)
 
 -- | Constructor for errors which are by default non-recoverable.
@@ -193,3 +194,7 @@ instance Bitraversable Result where
 withParsecOff# :: (Int# -> Parsec s p u e a) -> Parsec s p u e a
 withParsecOff# f = Parsec $ \s l p i u -> runParsec# (f i) s l p i u
 {-# INLINE withParsecOff# #-}
+
+setIntState# :: IntState# p -> Parsec s p u e ()
+setIntState# is# = Parsec $ \s l p i u -> Ok# is# i u ()
+{-# INLINE setIntState# #-}

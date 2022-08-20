@@ -99,6 +99,7 @@ library
     Text.Metalparsec.Chunk
     Text.Metalparsec.Internal
     Text.Metalparsec.Combinators
+    Text.Metalparsec.IntState
     Text.Metalparsec.Char
   ghc-options: -O2
   ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
@@ -132,5 +133,5 @@ benchmark metalparsec-bench
   main-is: Main.hs
   build-depends:
     metalparsec,
-    tasty-bench ^>= 0.3.2,
+    gauge ^>= 0.2.5
   ghc-options: -O2

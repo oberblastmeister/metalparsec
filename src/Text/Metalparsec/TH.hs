@@ -42,7 +42,7 @@ unsafeCharBytes bs =
   [||
   case $$(unsafeScanListUnchecked @Word8 bs) of
     (p :: Parsec chunk p u e a) ->
-      p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.offsetCharPos# 1# p) i u ())
+      p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.onChar# 1# p) i u ())
   ||]
 
 unsafeCharBytes' :: [Word8] -> Q Exp
@@ -50,7 +50,7 @@ unsafeCharBytes' bs =
   [|
     case $(unsafeScanListUnchecked' @Word8 bs) of
       (p :: Parsec chunk p u e a) ->
-        p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.offsetCharPos# 1# p) i u ())
+        p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.onChar# 1# p) i u ())
     |]
 
 unsafeScanListUnchecked :: (TH.Lift a, Chunk.TokenTag s ~ a, Chunk s p) => [a] -> Code Q (Parsec s p u e ())

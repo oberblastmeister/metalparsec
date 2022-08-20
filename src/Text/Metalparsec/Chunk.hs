@@ -13,19 +13,8 @@ import Data.Word (Word8)
 import GHC.Base (unsafeChr)
 import GHC.Exts
 import GHC.TypeLits qualified as TypeLits
+import Text.Metalparsec.IntState
 import Text.Metalparsec.Util (pattern UnsafeText#)
-
-newtype Pos# p = Pos# (# Int#, Int#, Int# #)
-
-type role Pos# nominal
-
-addPos1# :: Int# -> Pos# p -> Pos# p
-addPos1# i# (Pos# (# off#, line#, col# #)) = Pos# (# off# +# i#, line#, col# #)
-{-# INLINE addPos1# #-}
-
-pos1# :: Pos# p -> Int#
-pos1# (Pos# (# off#, _, _ #)) = off#
-{-# INLINE pos1# #-}
 
 newtype Slice# s = Slice# (# BaseArray# s, Int#, Int# #)
 
@@ -35,9 +24,9 @@ data Bytes = Bytes
     len :: !Int
   }
 
-type Chunk c p = (BasicChunk c, TokenPos p (Token c))
+type Chunk c p = (BasicChunk c, Updater p, Token c ~ UpdaterForToken p)
 
-type ByteChunk c p = (Chunk c p, Token c ~ Word8, BaseArray# c ~ ByteArray#, NextCharPos p)
+type ByteChunk c p = (Chunk c p, Token c ~ Word8, BaseArray# c ~ ByteArray#, CharUpdater p)
 
 type TokenTag c = Tag (Token c)
 
@@ -46,14 +35,14 @@ type family NotText s where
   NotText Text = TypeLits.TypeError (TypeLits.Text "You cannot take individual bytes from Text")
   NotText _ = ()
 
-class TokenPos p t | p -> t where
-  offsetPos# :: Int# -> Pos# p -> Pos# p
-  nextTokenPos# :: t -> Pos# p -> Pos# p
-  liftPos# :: Pos# p -> Int# -> p
-  defPos# :: (# #) -> Pos# p
+class Updater p where
+  type UpdaterForToken p :: Type
+  onOffset# :: Int# -> IntState# p -> IntState# p
+  onToken# :: UpdaterForToken p -> IntState# p -> IntState# p
+  defIntState# :: (# #) -> IntState# p
 
-class (TokenPos p Word8) => NextCharPos p where
-  offsetCharPos# :: Int# -> Pos# p -> Pos# p
+class (Updater p, UpdaterForToken p ~ Word8) => CharUpdater p where
+  onChar# :: Int# -> IntState# p -> IntState# p
 
 class Eq (Tag t) => GetTokenTag t where
   type Tag t = (r :: Type) | r -> t
@@ -105,43 +94,43 @@ instance BasicChunk Text where
   {-# INLINE convertSlice# #-}
   {-# INLINE unsafeIndex# #-}
 
-newtype Pos = Pos {unPos :: Int}
+data PosUpdater
 
-instance TokenPos Pos Word8 where
-  offsetPos# = addPos1#
-  nextTokenPos# _ pos# = pos#
-  liftPos# pos# _ = Pos (I# (pos1# pos#))
-  defPos# _ = Pos# (# 0#, 0#, 0# #)
-  {-# INLINE nextTokenPos# #-}
-  {-# INLINE liftPos# #-}
-  {-# INLINE defPos# #-}
+instance Updater PosUpdater where
+  type UpdaterForToken PosUpdater = Word8
+  onOffset# = add1#
+  onToken# _ st# = st#
+  defIntState# _ = IntState# (# 0#, 0#, 0# #)
+  {-# INLINE onOffset# #-}
+  {-# INLINE onToken# #-}
+  {-# INLINE defIntState# #-}
 
-instance NextCharPos Pos where
-  offsetCharPos# _ pos = pos
-  {-# INLINE offsetCharPos# #-}
+instance CharUpdater PosUpdater where
+  onChar# _ pos = pos
+  {-# INLINE onChar# #-}
 
-incPosAscii :: NextCharPos p => Word8 -> Pos# p -> Pos# p
-incPosAscii t p = offsetCharPos# 1# (nextTokenPos# t (offsetPos# 1# p))
-{-# INLINE incPosAscii #-}
+onAscii :: CharUpdater p => Word8 -> IntState# p -> IntState# p
+onAscii t p = onChar# 1# (onToken# t (onOffset# 1# p))
+{-# INLINE onAscii #-}
 
-incPosChar :: NextCharPos p => Int# -> Pos# p -> Pos# p
-incPosChar off# p = offsetCharPos# 1# (offsetPos# off# p)
+incPosChar :: CharUpdater p => Int# -> IntState# p -> IntState# p
+incPosChar off# p = onChar# 1# (onOffset# off# p)
 {-# INLINE incPosChar #-}
 
-data LineCol = LineCol {off :: !Int, line :: !Int, col :: !Int}
+data LineColUpdater
 
-instance TokenPos LineCol Word8 where
-  offsetPos# = addPos1#
-  nextTokenPos# t (Pos# (# off#, line#, col# #)) =
+instance Updater LineColUpdater where
+  type UpdaterForToken LineColUpdater = Word8
+  onOffset# = add1#
+  onToken# t (IntState# (# off#, line#, col# #)) =
     if '\n' == (unsafeChr (fromIntegral t))
-      then Pos# (# off# +# 1#, line# +# 1#, 0# #)
-      else Pos# (# off# +# 1#, line#, col# #)
-  defPos# _ = Pos# (# 0#, 1#, 1# #)
-  liftPos# (Pos# (# I# -> off, I# -> line, I# -> col #)) _ = LineCol {off, line, col}
-  {-# INLINE nextTokenPos# #-}
-  {-# INLINE defPos# #-}
-  {-# INLINE liftPos# #-}
+      then IntState# (# off# +# 1#, line# +# 1#, 0# #)
+      else IntState# (# off# +# 1#, line#, col# #)
+  defIntState# _ = IntState# (# 0#, 1#, 1# #)
+  {-# INLINE onOffset# #-}
+  {-# INLINE onToken# #-}
+  {-# INLINE defIntState# #-}
 
-instance NextCharPos LineCol where
-  offsetCharPos# i# (Pos# (# off#, line#, col# #)) = (Pos# (# off#, line#, col# +# i# #))
-  {-# INLINE offsetCharPos# #-}
+instance CharUpdater LineColUpdater where
+  onChar# i# (IntState# (# off#, line#, col# #)) = (IntState# (# off#, line#, col# +# i# #))
+  {-# INLINE onChar# #-}

@@ -31,7 +31,7 @@ satisfyAscii f = Parsec $ \s l p i u -> case l ==# i of
   1# -> Fail#
   _ -> case indexChar8# s i of
     c -> case c `leChar#` '\x7f'# of
-      1# | f (C# c) -> Ok# (Chunk.incPosAscii (charToWord8 (C# c)) p) (i +# 1#) u (C# c)
+      1# | f (C# c) -> Ok# (Chunk.onAscii (charToWord8 (C# c)) p) (i +# 1#) u (C# c)
       _ -> Fail#
 {-# INLINE satisfyAscii #-}
 
@@ -40,7 +40,7 @@ anyChar = Parsec $ \s l p i u -> case i ==# l of
   1# -> Fail#
   _ -> case indexChar8# s i of
     c1 -> case c1 `leChar#` '\x7F'# of
-      1# -> Ok# (Chunk.incPosAscii (charToWord8 (C# c1)) p) (i +# 1#) u (C# c1)
+      1# -> Ok# (Chunk.onAscii (charToWord8 (C# c1)) p) (i +# 1#) u (C# c1)
       _ ->
         case (i +# 1#) ==# l of
           1# -> Fail#
@@ -81,7 +81,7 @@ anyChar_ = Parsec $ \s l p i u ->
     _ -> case indexChar8# s i of
       c1 ->
         case c1 `leChar#` '\x7F'# of
-          1# -> Ok# (Chunk.incPosAscii (charToWord8 (C# c1)) p) (i +# 1#) u ()
+          1# -> Ok# (Chunk.onAscii (charToWord8 (C# c1)) p) (i +# 1#) u ()
           _ ->
             case Exts.inline Text.Internal.Encoding.Utf8.utf8LengthByLeader (charToWord8 (C# c1)) of
               I# len# -> case i +# len# <# l of
@@ -94,7 +94,7 @@ anyCharAscii = Parsec $ \s l p i u -> case i ==# l of
   1# -> Fail#
   _ -> case indexChar8# s i of
     c -> case c `leChar#` '\x7F'# of
-      1# -> Ok# (Chunk.incPosAscii (charToWord8 (C# c)) p) (i +# 1#) u (C# c)
+      1# -> Ok# (Chunk.onAscii (charToWord8 (C# c)) p) (i +# 1#) u (C# c)
       _ -> Fail#
 {-# INLINE anyCharAscii #-}
 
