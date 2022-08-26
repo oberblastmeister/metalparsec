@@ -24,6 +24,9 @@ data Bytes = Bytes
     len :: !Int
   }
 
+data UnliftedUnit# :: UnliftedType where
+  UnliftedUnit# :: UnliftedUnit#
+
 type Chunk c p = (BasicChunk c, Updater p, Token c ~ UpdaterForToken p)
 
 type ByteChunk c p = (Chunk c p, Token c ~ Word8, BaseArray# c ~ ByteArray#, CharUpdater p)
@@ -94,10 +97,10 @@ instance BasicChunk Text where
   {-# INLINE convertSlice# #-}
   {-# INLINE unsafeIndex# #-}
 
-data PosUpdater
+data OffsetUpdater
 
-instance Updater PosUpdater where
-  type UpdaterForToken PosUpdater = Word8
+instance Updater OffsetUpdater where
+  type UpdaterForToken OffsetUpdater = Word8
   onOffset# = add1#
   onToken# _ st# = st#
   defIntState# _ = IntState# (# 0#, 0#, 0# #)
@@ -105,7 +108,7 @@ instance Updater PosUpdater where
   {-# INLINE onToken# #-}
   {-# INLINE defIntState# #-}
 
-instance CharUpdater PosUpdater where
+instance CharUpdater OffsetUpdater where
   onChar# _ pos = pos
   {-# INLINE onChar# #-}
 

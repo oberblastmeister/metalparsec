@@ -8,7 +8,7 @@ import Text.Metalparsec
 
 import Text.Metalparsec.TH
 
-type P e a = Parsec Text PosUpdater () e a
+type P e a = Parsec Text OffsetUpdater () e a
 
 open :: P e ()
 open = $$(string "(") >> ws

@@ -23,6 +23,18 @@ newtype Parsec s p u e a = Parsec
       Res# p u e a
   }
 
+newtype ParsecT m s p u e a = MParsec
+  { runParsecT# ::
+      Chunk.BaseArray# s ->
+      Int# ->
+      IntState# p ->
+      Int# ->
+      u ->
+      m (Res# p u e a)
+  }
+  
+-- instance PrimMonad Parsec
+
 type Res# p u e a = (# (# IntState# p, Int#, u, a #) | (# #) | (# e #) #)
 
 -- | Contains return value and a pointer to the rest of the input buffer.

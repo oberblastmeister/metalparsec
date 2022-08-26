@@ -3,11 +3,14 @@
 module Text.Metalparsec.Combinators where
 
 import Control.Applicative qualified as Applicative
+import Control.Monad.ST (ST)
+import Data.Primitive.PrimArray
 import GHC.Exts
 import GHC.Exts qualified as Exts
 import Text.Metalparsec.Chunk (Chunk)
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.Internal
+import qualified Data.Vector.Generic as V
 
 -- | Check that the input has at least the given number of bytes.
 ensureLen :: Int -> Parsec s p u e ()
@@ -81,6 +84,13 @@ many_ (Parsec f) = Parsec go
 some_ :: Parsec s p u e a -> Parsec s p u e ()
 some_ pa = pa >> many_ pa
 {-# INLINE some_ #-}
+
+-- manyVec :: V.Vector v a => Parsec s p u e a -> Parsec s p u e (v a)
+-- manyVec (Parsec f) = Parsec $ \s l p i u -> do
+--   let step (p, i, u) = case f s l p i u of
+--               Ok# p i u a -> pure $ Yield a (p, i, u)
+--               Fail# -> pure Done
+--               Err# e -> 
 
 -- | Choose between two Parsecs. If the first Parsec fails, try the second one, but if the first one
 --   throws an error, propagate the error.

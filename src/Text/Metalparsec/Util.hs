@@ -55,3 +55,8 @@ charUtf8Bytes = textUtf8Bytes . T.singleton
 
 textUtf8Len :: Text -> Int
 textUtf8Len = B.length . T.encodeUtf8
+
+type Assert :: Bool -> Constraint -> Constraint
+type family Assert check errMsg where
+  Assert 'True _ = ()
+  Assert _ errMsg = errMsg

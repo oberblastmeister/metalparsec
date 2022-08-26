@@ -70,6 +70,7 @@ common common-options
     MagicHash,
     UnboxedTuples,
     UnliftedNewtypes,
+    UnliftedDatatypes,
     RoleAnnotations,
   ghc-options:
     -Wall
@@ -88,6 +89,8 @@ common common-options
     template-haskell,
     text ^>= 2.0,
     bytestring,
+    vector,
+    vector-stream,
 
 library
   import: common-options
