@@ -52,3 +52,6 @@ map2# f (IntState# (# _1#, _2#, _3# #)) = IntState# (# _1#, f _2#, _3# #)
 map3# :: (Int# -> Int#) -> IntState# p -> IntState# p
 map3# f (IntState# (# _1#, _2#, _3# #)) = IntState# (# _1#, _2#, f _3# #)
 {-# INLINE map3# #-}
+
+intState0# :: (# #) -> IntState# p
+intState0# _ = IntState# (# 0#, 0#, 0# #)

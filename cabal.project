@@ -1,2 +1,6 @@
 packages:
     ./
+
+
+tests: True
+benchmarks: True

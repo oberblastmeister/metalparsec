@@ -1,4 +1,4 @@
-cabal-version:      3.6
+cabal-version:      3.8
 name:               metalparsec
 version:            0.1.0.0
 
@@ -85,29 +85,37 @@ common common-options
     -Werror=missing-methods
   build-depends:
     base >= 4.12 && <5,
-    primitive ^>= 0.7.4.0,
-    template-haskell,
-    text ^>= 2.0,
+    primitive,
+    text >= 2.0,
     bytestring,
     vector,
     vector-stream,
 
 library
   import: common-options
-  hs-source-dirs: src
+  hs-source-dirs: components/lib
   exposed-modules:
     Text.Metalparsec
     Text.Metalparsec.Util
-    Text.Metalparsec.TH
     Text.Metalparsec.Chunk
     Text.Metalparsec.Internal
     Text.Metalparsec.Combinators
     Text.Metalparsec.IntState
     Text.Metalparsec.Char
   ghc-options: -O2
-  ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
-  ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
-  ghc-options: -dsuppress-uniques -dsuppress-timestamps
+  -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
+  -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
+  -- ghc-options: -dsuppress-uniques -dsuppress-timestamps
+
+library th
+  import: common-options
+  hs-source-dirs: components/th
+  exposed-modules:
+    Text.Metalparsec.TH
+  ghc-options: -O2
+  build-depends:
+    metalparsec,
+    template-haskell
 
 common rtsopts
   ghc-options:
@@ -115,26 +123,51 @@ common rtsopts
     -rtsopts
     -with-rtsopts=-N
 
-test-suite metalparsec-test
+test-suite test
   import: common-options, rtsopts
   type: exitcode-stdio-1.0
-  hs-source-dirs: test
+  hs-source-dirs: components/test
   main-is: Main.hs
   other-modules:
     Sexp
   build-depends:
     metalparsec,
+    metalparsec:th,
     tasty ^>= 1.4.2.3,
     tasty-hunit ^>= 0.10.0.3,
     -- QuickCheck ^>= 2.14.2,
     -- quickcheck-instances ^>= 0.3.27,
 
-benchmark metalparsec-bench
+benchmark bench
   import: common-options, rtsopts
   type: exitcode-stdio-1.0
-  hs-source-dirs: bench
+  hs-source-dirs: components/bench
   main-is: Main.hs
+  default-extensions:
+    BlockArguments
+    TemplateHaskell
+  other-modules:
+    Simple
+      Simple.Attoparsec
+      Simple.FPBasic
+      Simple.FPStateful
+      Simple.Megaparsec
+      Simple.Metalparsec
+    Json.Metalparsec
+    Json.Attoparsec
+    Json.Common
   build-depends:
     metalparsec,
-    gauge ^>= 0.2.5
-  ghc-options: -O2
+    metalparsec:th,
+    attoparsec ^>= 0.14.4,
+    megaparsec ^>= 9.2.1,
+    flatparse ^>= 0.3.5.1,
+    gauge ^>= 0.2.5,
+    containers ^>= 0.6.6,
+    unordered-containers ^>= 0.2.19.1,
+    vector ^>= 0.13.0.0,
+    scientific ^>= 0.3.7.0,
+    deepseq ^>= 1.4.3.0,
+  ghc-options:
+    -Wno-incomplete-patterns
+    -O2

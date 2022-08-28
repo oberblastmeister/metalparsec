@@ -13,5 +13,5 @@
     - first class support for text
       - parsing `ByteString` must copy to `ByteArray` first
     - because it has more features, it is slightly slower than `flatparse`
-    - 6-8 times faster than `attoparsec` and `megaparsec`
+    - 6-10 times faster than `attoparsec` and `megaparsec`
     - less unsafe things exposed

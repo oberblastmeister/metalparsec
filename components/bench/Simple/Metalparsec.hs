@@ -1,55 +1,48 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE UnboxedSums #-}
+{-# LANGUAGE UnboxedTuples #-}
 
-module Sexp where
+module Simple.Metalparsec
+  ( runSexp,
+    runLongws,
+    runNumcsv,
+  )
+where
 
 import Data.Text (Text)
 import Text.Metalparsec
--- import Text.Metalparsec.Chunk (ByteChunk)
-
 import Text.Metalparsec.TH
 
-type P e a = Parsec Text OffsetUpdater () e a
+type Parser e a = Parsec Text () e a
 
-open :: P e ()
+ws, open, close, ident, sexp, src :: Parser e ()
 open = $$(string "(") >> ws
-
-ws :: P e ()
+close = $$(string ")") >> ws
 ws = many_ $ $$(string " ") <|> $$(string "\n")
-
--- close :: P e ()
--- close = $$(string ")") >> (ws)
--- identChar = satisfyAscii isLatinLetter
--- identChar = $$(string "bruh")
-
-ident :: P e ()
 ident = some_ (satisfyAscii isLatinLetter) >> ws
-
-sexp :: P e ()
 sexp = branch open (some_ sexp >> close) ident
-  where
-    close = $$(string ")") >> ws
-
-src :: P e ()
 src = sexp >> eof
 
 runSexp :: Text -> Result () ((), ())
 runSexp = runParser src ()
 
-longw, longws :: P e ()
+longw, longws :: Parser () ()
 longw = $$(string "thisisalongkeyword")
 longws = some_ (longw >> ws) >> eof
 
 runLongws :: Text -> Result () ((), ())
 runLongws = runParser longws ()
 
-numeral :: P e ()
+numeral, comma, numcsv :: Parser () ()
 numeral = some_ (satisfyAscii isAsciiDigit) >> ws
-
-comma :: P e ()
 comma = $$(string ",") >> ws
-
-numcsv :: P e ()
-numcsv = numeral >> many_ ($$(string ",") >> numeral) >> eof
+numcsv = numeral >> many_ (comma >> numeral) >> eof
 
 runNumcsv :: Text -> Result () ((), ())
 runNumcsv = runParser numcsv ()

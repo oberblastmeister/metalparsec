@@ -10,6 +10,7 @@ import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Primitive.ByteArray qualified as ByteArray
 import Data.Text (Text)
 import Data.Word (Word8)
+import Foreign (ForeignPtr)
 import GHC.Base (unsafeChr)
 import GHC.Exts
 import GHC.TypeLits qualified as TypeLits
@@ -27,9 +28,12 @@ data Bytes = Bytes
 data UnliftedUnit# :: UnliftedType where
   UnliftedUnit# :: UnliftedUnit#
 
-type Chunk c p = (BasicChunk c, Updater p, Token c ~ UpdaterForToken p)
+data UnliftedForeignPtr :: Type -> UnliftedType where
+  UnliftedForeignPtr :: ForeignPtr a -> UnliftedForeignPtr a
 
-type ByteChunk c p = (Chunk c p, Token c ~ Word8, BaseArray# c ~ ByteArray#, CharUpdater p)
+type Chunk = PositionedChunk
+
+type ByteChunk c = (Token c ~ Word8, BaseArray# c ~ ByteArray#, CharPositionedChunk c)
 
 type TokenTag c = Tag (Token c)
 
@@ -37,15 +41,6 @@ type NotText :: Type -> Constraint
 type family NotText s where
   NotText Text = TypeLits.TypeError (TypeLits.Text "You cannot take individual bytes from Text")
   NotText _ = ()
-
-class Updater p where
-  type UpdaterForToken p :: Type
-  onOffset# :: Int# -> IntState# p -> IntState# p
-  onToken# :: UpdaterForToken p -> IntState# p -> IntState# p
-  defIntState# :: (# #) -> IntState# p
-
-class (Updater p, UpdaterForToken p ~ Word8) => CharUpdater p where
-  onChar# :: Int# -> IntState# p -> IntState# p
 
 class Eq (Tag t) => GetTokenTag t where
   type Tag t = (r :: Type) | r -> t
@@ -59,7 +54,16 @@ class (GetTokenTag (Token s)) => BasicChunk s where
   convertSlice# :: Slice# s -> ChunkSlice s
   unsafeIndex# :: Proxy# s -> BaseArray# s -> Int# -> Token s
 
+class (BasicChunk c) => PositionedChunk c where
+  onToken# :: Token c -> IntState# c -> IntState# c
+  defIntState# :: (# #) -> IntState# c
+  onOffset# :: Int# -> IntState# c -> IntState# c
+
+class (PositionedChunk c, Token c ~ Word8) => CharPositionedChunk c where
+  onChar# :: Int# -> IntState# c -> IntState# c
+
 instance GetTokenTag Word8 where
+  type Tag Word8 = Word8
   type Tag Word8 = Word8
   tokenTag = id
   {-# INLINE tokenTag #-}
@@ -75,6 +79,14 @@ instance BasicChunk ByteArray where
   {-# INLINE convertSlice# #-}
   {-# INLINE unsafeIndex# #-}
 
+instance PositionedChunk ByteArray where
+  onToken# = onTokenLineCol##
+  defIntState# _ = IntState# (# 0#, 0#, 0# #)
+  onOffset# = add1#
+  {-# INLINE onToken# #-}
+  {-# INLINE defIntState# #-}
+  {-# INLINE onOffset# #-}
+
 instance BasicChunk ShortByteString where
   type Token ShortByteString = Word8
   type BaseArray# ShortByteString = ByteArray#
@@ -85,6 +97,14 @@ instance BasicChunk ShortByteString where
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}
   {-# INLINE unsafeIndex# #-}
+
+instance PositionedChunk ShortByteString where
+  onToken# = onTokenLineCol##
+  defIntState# = intState0#
+  onOffset# = add1#
+  {-# INLINE onToken# #-}
+  {-# INLINE defIntState# #-}
+  {-# INLINE onOffset# #-}
 
 instance BasicChunk Text where
   type Token Text = Word8
@@ -97,43 +117,40 @@ instance BasicChunk Text where
   {-# INLINE convertSlice# #-}
   {-# INLINE unsafeIndex# #-}
 
-data OffsetUpdater
-
-instance Updater OffsetUpdater where
-  type UpdaterForToken OffsetUpdater = Word8
+instance PositionedChunk Text where
+  onToken# = onTokenLineCol##
+  defIntState# = intState0#
   onOffset# = add1#
-  onToken# _ st# = st#
-  defIntState# _ = IntState# (# 0#, 0#, 0# #)
-  {-# INLINE onOffset# #-}
   {-# INLINE onToken# #-}
   {-# INLINE defIntState# #-}
+  {-# INLINE onOffset# #-}
 
-instance CharUpdater OffsetUpdater where
-  onChar# _ pos = pos
+instance CharPositionedChunk Text where
+  onChar# = add3#
   {-# INLINE onChar# #-}
 
-onAscii :: CharUpdater p => Word8 -> IntState# p -> IntState# p
+newtype OffsetChunk c = OffsetChunk c
+  deriving (BasicChunk)
+
+instance PositionedChunk (OffsetChunk ByteArray) where
+  onToken# _ is# = is#
+  defIntState# _ = IntState# (# 0#, 0#, 0# #)
+  onOffset# = add1#
+  {-# INLINE onToken# #-}
+  {-# INLINE defIntState# #-}
+  {-# INLINE onOffset# #-}
+
+onAscii :: CharPositionedChunk p => Word8 -> IntState# p -> IntState# p
 onAscii t p = onChar# 1# (onToken# t (onOffset# 1# p))
 {-# INLINE onAscii #-}
 
-incPosChar :: CharUpdater p => Int# -> IntState# p -> IntState# p
+incPosChar :: CharPositionedChunk p => Int# -> IntState# p -> IntState# p
 incPosChar off# p = onChar# 1# (onOffset# off# p)
 {-# INLINE incPosChar #-}
 
-data LineColUpdater
-
-instance Updater LineColUpdater where
-  type UpdaterForToken LineColUpdater = Word8
-  onOffset# = add1#
-  onToken# t (IntState# (# off#, line#, col# #)) =
-    if '\n' == (unsafeChr (fromIntegral t))
-      then IntState# (# off# +# 1#, line# +# 1#, 0# #)
-      else IntState# (# off# +# 1#, line#, col# #)
-  defIntState# _ = IntState# (# 0#, 1#, 1# #)
-  {-# INLINE onOffset# #-}
-  {-# INLINE onToken# #-}
-  {-# INLINE defIntState# #-}
-
-instance CharUpdater LineColUpdater where
-  onChar# i# (IntState# (# off#, line#, col# #)) = (IntState# (# off#, line#, col# +# i# #))
-  {-# INLINE onChar# #-}
+onTokenLineCol## :: Word8 -> IntState# p2 -> IntState# p3
+onTokenLineCol## t (IntState# (# off#, line#, col# #)) =
+  if '\n' == (unsafeChr (fromIntegral t))
+    then IntState# (# off# +# 1#, line# +# 1#, 0# #)
+    else IntState# (# off# +# 1#, line#, col# #)
+{-# INLINE onTokenLineCol## #-}

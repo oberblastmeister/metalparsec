@@ -13,7 +13,7 @@ import Text.Metalparsec.Combinators
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Util
 
-string :: forall s p u e. (ByteChunk s p) => String -> Code Q (Parsec s p u e ())
+string :: forall s u e. (ByteChunk s) => String -> Code Q (Parsec s u e ())
 string s = [||ensureLen len *> $$(go bss)||]
   where
     len = textUtf8Len $ T.pack s
@@ -31,17 +31,17 @@ string' s = [|ensureLen len *> $(go bss)|]
     go (bs : bss) = [|$(unsafeCharBytes' bs) *> $(go bss)|]
     go [] = [|pure ()|]
 
-char :: forall s p u e. (ByteChunk s p) => Char -> Code Q (Parsec s p u e ())
+char :: forall s u e. (ByteChunk s ) => Char -> Code Q (Parsec s u e ())
 char c = [||ensureLen len *> $$(unsafeCharBytes bs)||]
   where
     len = charUtf8Len c
     bs = charUtf8Bytes c
 
-unsafeCharBytes :: forall s p u e. (ByteChunk s p) => [Word8] -> Code Q (Parsec s p u e ())
+unsafeCharBytes :: forall s u e. (ByteChunk s) => [Word8] -> Code Q (Parsec s u e ())
 unsafeCharBytes bs =
   [||
   case $$(unsafeScanListUnchecked @Word8 bs) of
-    (p :: Parsec chunk p u e a) ->
+    (p :: Parsec chunk u e a) ->
       p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.onChar# 1# p) i u ())
   ||]
 
@@ -49,11 +49,11 @@ unsafeCharBytes' :: [Word8] -> Q Exp
 unsafeCharBytes' bs =
   [|
     case $(unsafeScanListUnchecked' @Word8 bs) of
-      (p :: Parsec chunk p u e a) ->
+      (p :: Parsec chunk u e a) ->
         p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.onChar# 1# p) i u ())
     |]
 
-unsafeScanListUnchecked :: (TH.Lift a, Chunk.TokenTag s ~ a, Chunk s p) => [a] -> Code Q (Parsec s p u e ())
+unsafeScanListUnchecked :: (TH.Lift a, Chunk.TokenTag s ~ a, Chunk s) => [a] -> Code Q (Parsec s u e ())
 unsafeScanListUnchecked = go
   where
     go (x : xs) = [||unsafeTake1 x *> $$(go xs)||]
@@ -79,7 +79,7 @@ unsafeScanListUnchecked' = go
 
 -- -- | Unsafely read two concrete bytes from the input. It's not checked that the input has
 -- --   enough bytes.
--- scan16# :: Word16 -> Parsec s p u e ()
+-- scan16# :: Word16 -> Parsec s u e ()
 -- scan16# (W16# c) = Parsec $ \fp !r eob s n ->
 --   case indexWord16OffAddr# s 0# of
 --     c' -> case eqWord16'# c c' of
@@ -89,7 +89,7 @@ unsafeScanListUnchecked' = go
 
 -- -- | Unsafely read four concrete bytes from the input. It's not checked that the input has
 -- --   enough bytes.
--- scan32# :: Word32 -> Parsec s p u e ()
+-- scan32# :: Word32 -> Parsec s u e ()
 -- scan32# (W32# c) = Parsec $ \fp !r eob s n ->
 --   case indexWord32OffAddr# s 0# of
 --     c' -> case eqWord32'# c c' of
@@ -99,7 +99,7 @@ unsafeScanListUnchecked' = go
 
 -- -- | Unsafely read eight concrete bytes from the input. It's not checked that the input has
 -- --   enough bytes.
--- scan64# :: Word -> Parsec s p u e ()
+-- scan64# :: Word -> Parsec s u e ()
 -- scan64# (W# c) = Parsec $ \fp !r eob s n ->
 --   case indexWord64OffAddr# s 0# of
 --     c' -> case eqWord# c c' of

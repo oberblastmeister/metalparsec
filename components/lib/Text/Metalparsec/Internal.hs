@@ -13,27 +13,15 @@ import GHC.Exts
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.IntState (IntState#)
 
-newtype Parsec s p u e a = Parsec
+newtype Parsec s u e a = Parsec
   { runParsec# ::
       Chunk.BaseArray# s ->
       Int# ->
-      IntState# p ->
+      IntState# s ->
       Int# ->
       u ->
-      Res# p u e a
+      Res# s u e a
   }
-
-newtype ParsecT m s p u e a = MParsec
-  { runParsecT# ::
-      Chunk.BaseArray# s ->
-      Int# ->
-      IntState# p ->
-      Int# ->
-      u ->
-      m (Res# p u e a)
-  }
-  
--- instance PrimMonad Parsec
 
 type Res# p u e a = (# (# IntState# p, Int#, u, a #) | (# #) | (# e #) #)
 
@@ -54,13 +42,13 @@ pattern Fail# = (# | (# #) | #)
 unsafeCoerceRes# :: Res# p u e a -> Res# p u e b
 unsafeCoerceRes# = unsafeCoerce#
 
-instance Functor (Parsec s p u e) where
+instance Functor (Parsec s u e) where
   fmap f (Parsec g) = Parsec $ \s l p i u -> case g s l p i u of
     Ok# p i u a -> let !b = f a in Ok# p i u b
     x -> unsafeCoerceRes# x
   {-# INLINE fmap #-}
 
-instance Applicative (Parsec s p u e) where
+instance Applicative (Parsec s u e) where
   pure a = Parsec $ \_ _ p i u -> Ok# p i u a
   {-# INLINE pure #-}
 
@@ -85,7 +73,7 @@ instance Applicative (Parsec s p u e) where
     x -> unsafeCoerceRes# x
   {-# INLINE (*>) #-}
 
-instance Monad (Parsec s p u e) where
+instance Monad (Parsec s u e) where
   return = pure
   {-# INLINE return #-}
 
@@ -97,22 +85,22 @@ instance Monad (Parsec s p u e) where
   (>>) = (*>)
   {-# INLINE (>>) #-}
 
-instance Bifunctor (Parsec s p u) where
+instance Bifunctor (Parsec s u) where
   bimap f g (Parsec m) = Parsec $ \s l p i u -> case m s l p i u of
     Ok# p i u a -> Ok# p i u (g a)
     Fail# -> Fail#
     Err# e -> Err# (f e)
   {-# INLINE bimap #-}
 
-instance Semigroup a => Semigroup (Parsec s p u e a) where
+instance Semigroup a => Semigroup (Parsec s u e a) where
   (<>) = liftA2 (<>)
   {-# INLINE (<>) #-}
 
-instance Monoid a => Monoid (Parsec s p u e a) where
+instance Monoid a => Monoid (Parsec s u e a) where
   mempty = pure mempty
   {-# INLINE mempty #-}
 
-instance Alternative (Parsec s p u e) where
+instance Alternative (Parsec s u e) where
   empty = Parsec $ \_ _ _ _ _ -> Fail#
   {-# INLINE empty #-}
 
@@ -123,7 +111,7 @@ instance Alternative (Parsec s p u e) where
       x -> x
   {-# INLINE (<|>) #-}
 
-  -- \| Run a Parsec zero or more times, collect the results in a list. Note: for optimal performance,
+  -- \| Run a Parsec zero more times, collect the results in a list. Note: for optimal performance,
   --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
   --   combinator or a custom Parsec.
   many (Parsec f) = Parsec (go [])
@@ -134,7 +122,7 @@ instance Alternative (Parsec s p u e) where
         Err# e -> Err# e
   {-# INLINE many #-}
 
-  -- \| Run a Parsec one or more times, collect the results in a list. Note: for optimal performance,
+  -- \| Run a Parsec one more times, collect the results in a list. Note: for optimal performance,
   --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
   --   combinator or a custom Parsec.
   -- some p = (:) <$> p <*> many p
@@ -146,7 +134,7 @@ instance Alternative (Parsec s p u e) where
         Err# e -> Err# e
   {-# INLINE some #-}
 
-instance MonadPlus (Parsec s p u e) where
+instance MonadPlus (Parsec s u e) where
   mzero = empty
   {-# INLINE mzero #-}
   mplus = (<|>)
@@ -203,10 +191,10 @@ instance Bifoldable Result where
 instance Bitraversable Result where
   bitraverse f g = bisequenceA . bimap f g
 
-withParsecOff# :: (Int# -> Parsec s p u e a) -> Parsec s p u e a
+withParsecOff# :: (Int# -> Parsec s u e a) -> Parsec s u e a
 withParsecOff# f = Parsec $ \s l p i u -> runParsec# (f i) s l p i u
 {-# INLINE withParsecOff# #-}
 
-setIntState# :: IntState# p -> Parsec s p u e ()
-setIntState# is# = Parsec $ \s l p i u -> Ok# is# i u ()
+setIntState# :: IntState# s -> Parsec s u e ()
+setIntState# is# = Parsec $ \_s _l _p i u -> Ok# is# i u ()
 {-# INLINE setIntState# #-}
