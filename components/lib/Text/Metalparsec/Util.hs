@@ -9,6 +9,7 @@ import Data.Text.Encoding qualified as T
 import Data.Text.Internal qualified
 import GHC.Base (ord, unsafeChr)
 import GHC.Exts
+import GHC.IO (IO (..))
 import GHC.Word
 
 unI# :: Int -> Int#
@@ -60,3 +61,7 @@ type Assert :: Bool -> Constraint -> Constraint
 type family Assert check errMsg where
   Assert 'True _ = ()
   Assert _ errMsg = errMsg
+
+accursedUnutterablePerformIO :: IO a -> a
+accursedUnutterablePerformIO (IO m) = case m realWorld# of (# _, r #) -> r
+{-# INLINE accursedUnutterablePerformIO #-}

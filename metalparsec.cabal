@@ -97,6 +97,7 @@ library
   exposed-modules:
     Text.Metalparsec
     Text.Metalparsec.Util
+    Text.Metalparsec.Utf8
     Text.Metalparsec.Chunk
     Text.Metalparsec.Internal
     Text.Metalparsec.Combinators

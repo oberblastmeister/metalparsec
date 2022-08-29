@@ -3,6 +3,9 @@
 
 module Text.Metalparsec.Chunk where
 
+import Data.ByteString (ByteString)
+import Data.ByteString qualified as B
+import Data.ByteString.Internal qualified as B.Internal
 import Data.ByteString.Short (ShortByteString)
 import Data.ByteString.Short qualified
 import Data.Kind (Type)
@@ -10,14 +13,24 @@ import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Primitive.ByteArray qualified as ByteArray
 import Data.Text (Text)
 import Data.Word (Word8)
-import Foreign (ForeignPtr)
+import Foreign qualified
 import GHC.Base (unsafeChr)
 import GHC.Exts
+import GHC.ForeignPtr
+  ( ForeignPtr (..),
+    ForeignPtrContents (PlainPtr),
+    withForeignPtr,
+  )
+import GHC.IO (IO (..))
+import GHC.IO.Unsafe (unsafeDupablePerformIO)
 import GHC.TypeLits qualified as TypeLits
+import GHC.Word (Word8 (..))
 import Text.Metalparsec.IntState
-import Text.Metalparsec.Util (pattern UnsafeText#)
+import Text.Metalparsec.Util (accursedUnutterablePerformIO, pattern UnsafeText#)
 
 newtype Slice# s = Slice# (# BaseArray# s, Int#, Int# #)
+
+data Slice s = Slice !(BaseArray# s) !Int !Int
 
 data Bytes = Bytes
   { bytes :: !ByteArray,
@@ -129,6 +142,44 @@ instance CharPositionedChunk Text where
   onChar# = add3#
   {-# INLINE onChar# #-}
 
+instance BasicChunk ByteString where
+  type Token ByteString = Word8
+  type BaseArray# ByteString = MutableByteArray# RealWorld
+  type ChunkSlice ByteString = ByteString
+  toSlice# bs@(B.Internal.BS fp@(ForeignPtr _ fpc) l) =
+    let res :: Slice ByteString = unsafeDupablePerformIO $ withForeignPtr fp $ \p -> case fpc of
+          PlainPtr marr -> do
+            let base = Ptr (mutableByteArrayContents# marr)
+                off = p `Foreign.minusPtr` base
+            pure $ Slice marr off (off + l)
+          _ -> case B.copy bs of
+            B.Internal.BS fp@(ForeignPtr _ fpc) l -> withForeignPtr fp $ \p -> case fpc of
+              PlainPtr marr -> do
+                let base = Ptr (mutableByteArrayContents# marr)
+                    off = p `Foreign.minusPtr` base
+                pure $ Slice marr off (off + l)
+              _ -> error "should be PlainPtr"
+     in case res of
+          Slice marr (I# off) (I# len) -> Slice# (# marr, off, len #)
+  convertSlice# (Slice# (# marr, off, len #)) = B.Internal.BS (ForeignPtr (mutableByteArrayContents# marr `plusAddr#` off) (PlainPtr marr)) (I# (len -# off))
+  unsafeIndex# _ marr i = accursedUnutterablePerformIO $ IO $ \s -> case readWord8Array# marr i s of
+    (# s, w #) -> (# s, W8# w #)
+  {-# INLINE toSlice# #-}
+  {-# INLINE convertSlice# #-}
+  {-# INLINE unsafeIndex# #-}
+
+instance PositionedChunk ByteString where
+  onToken# = onTokenLineCol##
+  defIntState# = intState0#
+  onOffset# = add1#
+  {-# INLINE onToken# #-}
+  {-# INLINE defIntState# #-}
+  {-# INLINE onOffset# #-}
+
+instance CharPositionedChunk ByteString where
+  onChar# = add3#
+  {-# INLINE onChar# #-}
+
 newtype OffsetChunk c = OffsetChunk c
   deriving (BasicChunk)
 
@@ -151,6 +202,6 @@ incPosChar off# p = onChar# 1# (onOffset# off# p)
 onTokenLineCol## :: Word8 -> IntState# p2 -> IntState# p3
 onTokenLineCol## t (IntState# (# off#, line#, col# #)) =
   if '\n' == (unsafeChr (fromIntegral t))
-    then IntState# (# off# +# 1#, line# +# 1#, 0# #)
-    else IntState# (# off# +# 1#, line#, col# #)
+    then IntState# (# off#, line# +# 1#, 0# #)
+    else IntState# (# off#, line#, col# #)
 {-# INLINE onTokenLineCol## #-}

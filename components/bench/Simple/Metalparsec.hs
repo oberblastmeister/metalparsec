@@ -18,6 +18,7 @@ where
 import Data.Text (Text)
 import Text.Metalparsec
 import Text.Metalparsec.TH
+import Data.ByteString (ByteString)
 
 type Parser e a = Parsec Text () e a
 

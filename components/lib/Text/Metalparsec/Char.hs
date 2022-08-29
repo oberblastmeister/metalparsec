@@ -1,11 +1,8 @@
 module Text.Metalparsec.Char where
 
-import Data.Text (Text)
-import Data.Text.Internal.Encoding.Utf8 qualified as T.Internal.Encoding.Utf8
 import Data.Text.Internal.Encoding.Utf8 qualified as Text.Internal.Encoding.Utf8
 import GHC.Exts
 import GHC.Exts qualified as Exts
-import GHC.Word (Word8 (..))
 import Text.Metalparsec.Chunk (ByteChunk)
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.Combinators
