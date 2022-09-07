@@ -90,10 +90,11 @@ common common-options
     bytestring,
     vector,
     vector-stream,
+    template-haskell
 
 library
   import: common-options
-  hs-source-dirs: components/lib
+  hs-source-dirs: src
   exposed-modules:
     Text.Metalparsec
     Text.Metalparsec.Util
@@ -103,20 +104,11 @@ library
     Text.Metalparsec.Combinators
     Text.Metalparsec.IntState
     Text.Metalparsec.Char
+    Text.Metalparsec.TH
   ghc-options: -O2
   -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
   -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
   -- ghc-options: -dsuppress-uniques -dsuppress-timestamps
-
-library th
-  import: common-options
-  hs-source-dirs: components/th
-  exposed-modules:
-    Text.Metalparsec.TH
-  ghc-options: -O2
-  build-depends:
-    metalparsec,
-    template-haskell
 
 common rtsopts
   ghc-options:
@@ -127,13 +119,12 @@ common rtsopts
 test-suite test
   import: common-options, rtsopts
   type: exitcode-stdio-1.0
-  hs-source-dirs: components/test
+  hs-source-dirs: test
   main-is: Main.hs
   other-modules:
     Sexp
   build-depends:
     metalparsec,
-    metalparsec:th,
     tasty ^>= 1.4.2.3,
     tasty-hunit ^>= 0.10.0.3,
     -- QuickCheck ^>= 2.14.2,
@@ -142,7 +133,7 @@ test-suite test
 benchmark bench
   import: common-options, rtsopts
   type: exitcode-stdio-1.0
-  hs-source-dirs: components/bench
+  hs-source-dirs: bench
   main-is: Main.hs
   default-extensions:
     BlockArguments
@@ -159,7 +150,6 @@ benchmark bench
     Json.Common
   build-depends:
     metalparsec,
-    metalparsec:th,
     attoparsec ^>= 0.14.4,
     megaparsec ^>= 9.2.1,
     flatparse ^>= 0.3.5.1,
