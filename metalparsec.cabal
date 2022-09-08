@@ -102,7 +102,6 @@ library
     Text.Metalparsec.Chunk
     Text.Metalparsec.Internal
     Text.Metalparsec.Combinators
-    Text.Metalparsec.IntState
     Text.Metalparsec.Char
     Text.Metalparsec.TH
   ghc-options: -O2

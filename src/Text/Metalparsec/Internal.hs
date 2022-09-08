@@ -11,63 +11,80 @@ import Data.Bifunctor
 import Data.Bitraversable
 import GHC.Exts
 import Text.Metalparsec.Chunk qualified as Chunk
-import Text.Metalparsec.IntState (IntState#)
 
 newtype Parsec s u e a = Parsec
   { runParsec# ::
+      -- stream/chunk (s)
       Chunk.BaseArray# s ->
+      -- length (l)
       Int# ->
-      IntState# s ->
+      -- index (i)
       Int# ->
+      -- intstate (p)
+      Int# ->
+      -- user state (u)
       u ->
-      Res# s u e a
+      -- result
+      Res# u e a
   }
 
-type Res# p u e a = (# (# IntState# p, Int#, u, a #) | (# #) | (# e #) #)
+type Res# u e a =
+  (#
+    (#
+      -- p
+      Int#,
+      -- i
+      Int#,
+      u,
+      a
+    #) |
+    (# #) |
+    (# e #)
+  #)
 
 -- | Contains return value and a pointer to the rest of the input buffer.
-pattern Ok# :: IntState# p -> Int# -> u -> a -> Res# p u e a
+pattern Ok# :: Int# -> Int# -> u -> a -> Res# u e a
 pattern Ok# p i u a = (# (# p, i, u, a #) | | #)
 
 -- | Constructor for errors which are by default non-recoverable.
-pattern Err# :: e -> Res# p u e a
+pattern Err# :: e -> Res# u e a
 pattern Err# e = (# | | (# e #) #)
 
 -- | Constructor for recoverable failure.
-pattern Fail# :: Res# p u e a
+pattern Fail# :: Res# u e a
 pattern Fail# = (# | (# #) | #)
 
 {-# COMPLETE Ok#, Err#, Fail# #-}
 
-unsafeCoerceRes# :: Res# p u e a -> Res# p u e b
+unsafeCoerceRes# :: Res# u e a -> Res# u e b
 unsafeCoerceRes# = unsafeCoerce#
 
 instance Functor (Parsec s u e) where
-  fmap f (Parsec g) = Parsec $ \s l p i u -> case g s l p i u of
+  fmap f (Parsec g) = Parsec $ \s l i p u -> case g s l i p u of
     Ok# p i u a -> let !b = f a in Ok# p i u b
     x -> unsafeCoerceRes# x
   {-# INLINE fmap #-}
 
 instance Applicative (Parsec s u e) where
-  pure a = Parsec $ \_ _ p i u -> Ok# p i u a
+  pure a = Parsec $ \_s _l i p u -> Ok# p i u a
   {-# INLINE pure #-}
 
-  Parsec ff <*> Parsec fa = Parsec $ \s l p i u -> case ff s l p i u of
-    Ok# p i u f -> case fa s l p i u of
+  Parsec ff <*> Parsec fa = Parsec $ \s l i p u -> case ff s l i p u of
+    Ok# p i u f -> case fa s l i p u of
       Ok# p i u a -> let !b = f a in Ok# p i u b
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
   {-# INLINE (<*>) #-}
 
-  Parsec fa <* Parsec fb = Parsec $ \s l p i u -> case fa s l p i u of
-    Ok# p i u a -> case fb s l p i u of
+  Parsec fa <* Parsec fb = Parsec $ \s l i p u -> case fa s l i p u of
+    Ok# p i u a -> case fb s l i p u of
       Ok# p i u _ -> Ok# p i u a
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
   {-# INLINE (<*) #-}
 
-  Parsec fa *> Parsec fb = Parsec $ \s l p i u -> case fa s l p i u of
-    Ok# p i u _ -> case fb s l p i u of
+  Parsec fa *> Parsec fb = Parsec $ \s l i p u -> case fa s l i p u of
+    Ok# p i u _ -> case fb s l i p u of
       Ok# p i u b -> Ok# p i u b
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
@@ -77,8 +94,8 @@ instance Monad (Parsec s u e) where
   return = pure
   {-# INLINE return #-}
 
-  Parsec fa >>= f = Parsec $ \s l p i u -> case fa s l p i u of
-    Ok# p i u a -> runParsec# (f a) s l p i u
+  Parsec fa >>= f = Parsec $ \s l i p u -> case fa s l i p u of
+    Ok# p i u a -> runParsec# (f a) s l i p u
     x -> unsafeCoerce# x
   {-# INLINE (>>=) #-}
 
@@ -86,7 +103,7 @@ instance Monad (Parsec s u e) where
   {-# INLINE (>>) #-}
 
 instance Bifunctor (Parsec s u) where
-  bimap f g (Parsec m) = Parsec $ \s l p i u -> case m s l p i u of
+  bimap f g (Parsec m) = Parsec $ \s l i p u -> case m s l i p u of
     Ok# p i u a -> Ok# p i u (g a)
     Fail# -> Fail#
     Err# e -> Err# (f e)
@@ -105,9 +122,9 @@ instance Alternative (Parsec s u e) where
   {-# INLINE empty #-}
 
   -- \| Don't use this! @<|>@ is left associative, which is slower.
-  Parsec f <|> Parsec g = Parsec $ \s l p i u ->
-    case f s l p i u of
-      Fail# -> g s l p i u
+  Parsec f <|> Parsec g = Parsec $ \s l i p u ->
+    case f s l i p u of
+      Fail# -> g s l i p u
       x -> x
   {-# INLINE (<|>) #-}
 
@@ -116,8 +133,8 @@ instance Alternative (Parsec s u e) where
   --   combinator or a custom Parsec.
   many (Parsec f) = Parsec (go [])
     where
-      go xs s l p i u = case f s l p i u of
-        Ok# p i u x -> go (x : xs) s l p i u
+      go xs s l i p u = case f s l i p u of
+        Ok# p i u x -> go (x : xs) s l i p u
         Fail# -> Ok# p i u $! reverse xs
         Err# e -> Err# e
   {-# INLINE many #-}
@@ -128,8 +145,8 @@ instance Alternative (Parsec s u e) where
   -- some p = (:) <$> p <*> many p
   some p@(Parsec f) = p >>= \x -> Parsec (go [x])
     where
-      go xs s l p i u = case f s l p i u of
-        Ok# p i u x -> go (x : xs) s l p i u
+      go xs s l i p u = case f s l i p u of
+        Ok# p i u x -> go (x : xs) s l i p u
         Fail# -> Ok# p i u $! reverse xs
         Err# e -> Err# e
   {-# INLINE some #-}
@@ -192,9 +209,9 @@ instance Bitraversable Result where
   bitraverse f g = bisequenceA . bimap f g
 
 withParsecOff# :: (Int# -> Parsec s u e a) -> Parsec s u e a
-withParsecOff# f = Parsec $ \s l p i u -> runParsec# (f i) s l p i u
+withParsecOff# f = Parsec $ \s l i p u -> runParsec# (f i) s l i p u
 {-# INLINE withParsecOff# #-}
 
-setIntState# :: IntState# s -> Parsec s u e ()
-setIntState# is# = Parsec $ \_s _l _p i u -> Ok# is# i u ()
-{-# INLINE setIntState# #-}
+setInt# :: Int# -> Parsec s u e ()
+setInt# p = Parsec $ \_s _l i _p u -> Ok# p i u ()
+{-# INLINE setInt# #-}

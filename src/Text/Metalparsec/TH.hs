@@ -4,9 +4,9 @@
 module Text.Metalparsec.TH where
 
 import Data.Text qualified as T
+import GHC.Exts
 import GHC.Word
-import Language.Haskell.TH (Code, Exp, Q)
-import Language.Haskell.TH.Syntax qualified as TH
+import Language.Haskell.TH (Code, Exp, ExpQ, Q)
 import Text.Metalparsec.Chunk (ByteChunk, Chunk)
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.Combinators
@@ -28,42 +28,76 @@ string' s = [|ensureLen len *> $(go bss)|]
   where
     len = textUtf8Len $ T.pack s
     bss = encodeCharUtf8 <$> s
-    go (bs : bss) = [|$(unsafeCharBytes' bs) *> $(go bss)|]
+    go (bs : bss) = [|$(bytes' bs) *> $(go bss)|]
     go [] = [|pure ()|]
 
-char :: forall s u e. (ByteChunk s ) => Char -> Code Q (Parsec s u e ())
+char :: forall s u e. (ByteChunk s) => Char -> Code Q (Parsec s u e ())
 char c = [||ensureLen len *> $$(unsafeCharBytes bs)||]
   where
     len = charUtf8Len c
     bs = charUtf8Bytes c
 
-unsafeCharBytes :: forall s u e. (ByteChunk s) => [Word8] -> Code Q (Parsec s u e ())
-unsafeCharBytes bs =
-  [||
-  case $$(unsafeScanListUnchecked @Word8 bs) of
-    (p :: Parsec chunk u e a) ->
-      p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.onChar# 1# p) i u ())
-  ||]
-
-unsafeCharBytes' :: [Word8] -> Q Exp
-unsafeCharBytes' bs =
-  [|
-    case $(unsafeScanListUnchecked' @Word8 bs) of
-      (p :: Parsec chunk u e a) ->
-        p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.onChar# 1# p) i u ())
-    |]
-
-unsafeScanListUnchecked :: (TH.Lift a, Chunk.TokenTag s ~ a, Chunk s) => [a] -> Code Q (Parsec s u e ())
-unsafeScanListUnchecked = go
+unsafeBytes :: forall s u e. (ByteChunk s) => [Word8] -> Code Q (Parsec s u e ())
+unsafeBytes = go
   where
-    go (x : xs) = [||unsafeTake1 x *> $$(go xs)||]
+    go (b : bs) = [||unsafeByte b *> $$(go bs)||]
     go [] = [||pure ()||]
 
-unsafeScanListUnchecked' :: TH.Lift a => [a] -> Q Exp
-unsafeScanListUnchecked' = go
+unsafeBytes' :: [Word8] -> ExpQ
+unsafeBytes' = go
   where
-    go (x : xs) = [|unsafeTake1 x *> $(go xs)|]
+    go (b : bs) = [|unsafeByte' b *> $(go bs)|]
     go [] = [|pure ()|]
+-- [||
+-- case $$(unsafeScanListUnchecked @Word8 bs) of
+--   (p :: Parsec chunk u e a) ->
+--     p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.onChar# 1# p) i u ())
+-- \||]
+
+-- bytes' :: [Word8] -> Q Exp
+-- bytes' bs =
+--   [|
+--     case $(unsafeScanListUnchecked' @Word8 bs) of
+--       (p :: Parsec chunk u e a) ->
+--         p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.onChar# 1# p) i u ())
+--     |]
+
+-- unsafeScanListUnchecked :: (TH.Lift a, Chunk.TokenTag s ~ a, Chunk s) => [a] -> Code Q (Parsec s u e ())
+-- unsafeScanListUnchecked = go
+--   where
+--     go (x : xs) = [||unsafeTake1 x *> $$(go xs)||]
+--     go [] = [||pure ()||]
+
+unsafeByte :: ByteChunk s => Word8 -> Parsec s u e ()
+unsafeByte t =
+  Parsec $ \s _l i p u ->
+    case Chunk.unsafeIndex# s i of
+      t' | t == t' -> Ok# (p +# 1#) (i +# 1#) u ()
+      _ -> Fail#
+
+unsafeByte' :: ByteChunk s => Word8 -> Code Q (Parsec s u e ())
+unsafeByte' t =
+  [||
+  Parsec $ \s _l i p u ->
+    case Chunk.unsafeIndex# s i of
+      t' | t == t' -> Ok# (p +# 1#) (i +# 1#) u ()
+      _ -> Fail#
+  ||]
+
+-- unsafeByte' :: Word8 -> Int -> ExpQ
+-- unsafeByte' t at =
+--   [|
+--     Parsec $ \(s :: chunk) _l i p u ->
+--       case Chunk.unsafeIndex# (proxy# @chunk) s at of
+--         t' | t == t' -> Ok# p (i +# 1#) u ()
+--         _ -> Fail#
+-- \|]
+
+-- -- unsafeScanListUnchecked' :: TH.Lift a => [a] -> Q Exp
+-- unsafeScanListUnchecked' = go
+--   where
+--     go (x : xs) = [|unsafeTake1 x *> $(go xs)|]
+--     go [] = [|pure ()|]
 
 -- -- | Beware of alignment!
 -- unsafeScanPrim :: (Prim a, Eq a) => a -> Parsec ByteArray# p u e ()
