@@ -84,7 +84,10 @@ common common-options
     bytestring,
     vector,
     vector-stream,
-    template-haskell
+    template-haskell,
+  if impl(ghc < 9.2)
+    build-depends:
+      word-compat ^>= 0.0.5
 
 library
   import: common-options
@@ -145,15 +148,15 @@ benchmark bench
     Json.Common
   build-depends:
     metalparsec,
-    attoparsec
-    megaparsec
-    flatparse
-    gauge
-    containers
-    unordered-containers
-    vector
-    scientific
-    deepseq
+    attoparsec,
+    megaparsec,
+    flatparse,
+    gauge,
+    containers,
+    unordered-containers,
+    vector,
+    scientific,
+    deepseq,
   ghc-options:
     -Wno-incomplete-patterns
     -O2
