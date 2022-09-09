@@ -87,7 +87,7 @@ common common-options
     template-haskell,
   if impl(ghc < 9.2)
     build-depends:
-      word-compat ^>= 0.0.5
+      word-compat
 
 library
   import: common-options
