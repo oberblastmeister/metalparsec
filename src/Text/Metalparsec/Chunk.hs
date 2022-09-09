@@ -6,7 +6,6 @@ module Text.Metalparsec.Chunk where
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Short.Internal (ShortByteString(..))
-import Data.ByteString.Short qualified
 import Data.Kind (Type)
 import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Primitive.ByteArray qualified as ByteArray
@@ -18,7 +17,7 @@ import Text.Metalparsec.PureMutableByteArray (PureMutableByteArray#)
 import Text.Metalparsec.PureMutableByteArray qualified as PureMutableByteArray
 import Text.Metalparsec.Util (pattern UnsafeText#)
 
-#if __GLASGOW_HASKELL__ < 920
+#if !MIN_VERSION_base(4,16,0)
 type UnliftedType = TYPE 'UnliftedRep
 #endif
 

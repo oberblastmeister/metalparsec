@@ -2,8 +2,8 @@
 
 module Compat.Word (module X) where
 
-#if __GLASGOW_HASKELL__ < 920
-import GHC.Word.Compat as X
-#else
+#if MIN_VERSION_base(4,16,0)
 import GHC.Word as X
+#else
+import GHC.Word.Compat as X
 #endif
