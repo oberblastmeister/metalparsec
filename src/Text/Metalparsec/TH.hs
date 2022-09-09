@@ -40,7 +40,7 @@ unsafeBytes = go
 unsafeBytes' :: [Word8] -> ExpQ
 unsafeBytes' = go
   where
-    go (b : bs) = [|unsafeByte' b *> $(go bs)|]
+    go (b : bs) = [|unsafeByte b *> $(go bs)|]
     go [] = [|pure ()|]
 
 unsafeByte :: ByteChunk s => Word8 -> Parsec s u e ()

@@ -71,10 +71,12 @@ common common-options
     -Wno-name-shadowing
     -Wno-unticked-promoted-constructors
     -- until OverloadedRecordUpdate stabilizes
-    -Wno-ambiguous-fields
     -Werror=incomplete-patterns
     -Werror=incomplete-uni-patterns
     -Werror=missing-methods
+  if impl(ghc >= 9.2)
+    ghc-options:
+      -Wno-ambiguous-fields
   build-depends:
     base >= 4.12 && <5,
     primitive,
