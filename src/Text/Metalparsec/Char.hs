@@ -1,5 +1,7 @@
 module Text.Metalparsec.Char where
 
+import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Text.Internal.Encoding.Utf8 qualified as Text.Internal.Encoding.Utf8
 import GHC.Exts
 import GHC.Exts qualified as Exts
@@ -11,71 +13,66 @@ import Text.Metalparsec.Utf8 qualified as Utf8
 import Text.Metalparsec.Util
 
 takeWhileChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-takeWhileChar = takeWhileSuceeds . satisfyChar
+takeWhileChar = manySlice . satisfyChar
 {-# INLINE takeWhileChar #-}
 
-takeWhileChar1 :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-takeWhileChar1 f = satisfyChar f *> takeWhileChar f
-{-# INLINE takeWhileChar1 #-}
+-- -- this is wrong
+-- takeWhileChar1 :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
+-- takeWhileChar1 f = satisfyChar f *> takeWhileChar f
+-- {-# INLINE takeWhileChar1 #-}
 
 takeWhileAscii :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-takeWhileAscii = takeWhileSuceeds . satisfyAscii
+takeWhileAscii = manySlice . satisfyAscii
 {-# INLINE takeWhileAscii #-}
 
-takeWhileAscii1 :: forall chunk u e. ByteChunk chunk => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-takeWhileAscii1 f = satisfyAscii f *> takeWhileAscii f
-{-# INLINE takeWhileAscii1 #-}
+-- takeWhileAscii1 :: forall chunk u e. ByteChunk chunk => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
+-- takeWhileAscii1 f = satisfyAscii f *> takeWhileAscii f
+-- {-# INLINE takeWhileAscii1 #-}
 
 -- | Parse an ASCII `Char` for which a predicate holds.
 satisfyAscii :: forall chunk u e. ByteChunk chunk => (Char -> Bool) -> Parsec chunk u e Char
 satisfyAscii f = Parsec $ \s l i p u -> case l ==# i of
   1# -> Fail#
-  _ -> case indexChar8# s i of
+  _ -> case Chunk.unsafeIndexChar8# s i of
     c -> case c `leChar#` '\x7f'# of
       1# | f (C# c) -> Ok# (p +# 1#) (i +# 1#) u (C# c)
       _ -> Fail#
 {-# INLINE satisfyAscii #-}
 
--- char :: Char -> Parsec s u e ()
--- char c = undefined
+char :: ByteChunk s => Char -> Parsec s u e ()
+char = text . T.singleton
+{-# INLINE char #-}
 
--- text :: forall chunk u e. ByteChunk chunk => Text -> Parsec chunk u e ()
--- text (UnsafeText# bs# off# len#) = Parsec start
---   where
---     diff# = len# -# off#
---     start s l i p u = case i +# diff# <=# l of
---       1# -> go s l i p u
---       _ -> Fail#
---     go s l i p u =
---       let w = Chunk.unsafeIndex# (proxy# @chunk) s i
---           utf8Len = Exts.inline T.Internal.Encoding.Utf8.utf8LengthByLeader (W8# w)
---        in case Utf8.lengthByLeader# w of
--- 1# -> compareByteArrays#
---   Ok# (Chunk.onAscii t p) (i +# 1#) u ()
-
--- case utf8Len of
---   1
+text :: ByteChunk chunk => Text -> Parsec chunk u e ()
+text (UnsafeText# bs# off# len#) = Parsec $ \s l i p u ->
+  case i +# len# <=# l of
+    1# ->
+      case Chunk.unsafeCompare# bs# off# s i len# of
+        0# -> Ok# (p +# len#) (i +# len#) u ()
+        _ -> Fail#
+    _ -> Fail#
+{-# INLINE text #-}
 
 anyChar :: forall chunk u e. ByteChunk chunk => Parsec chunk u e Char
 anyChar = Parsec $ \s l i p u -> case i ==# l of
   1# -> Fail#
-  _ -> case indexChar8# s i of
+  _ -> case Chunk.unsafeIndexChar8# s i of
     c1 -> case c1 `leChar#` '\x7F'# of
       1# -> Ok# (p +# 1#) (i +# 1#) u (C# c1)
       _ ->
         case (i +# 1#) ==# l of
           1# -> Fail#
-          _ -> case indexChar8# s (i +# 1#) of
+          _ -> case Chunk.unsafeIndexChar8# s (i +# 1#) of
             c2 -> case c1 `leChar#` '\xDF'# of
               1# -> Ok# (p +# 2#) (i +# 2#) u (C# (Utf8.char2# c1 c2))
               _ -> case (i +# 2#) ==# l of
                 1# -> Fail#
-                _ -> case indexChar8# s (i +# 2#) of
+                _ -> case Chunk.unsafeIndexChar8# s (i +# 2#) of
                   c3 -> case c1 `leChar#` '\xEF'# of
                     1# -> Ok# (p +# 3#) (i +# 3#) u (C# (Utf8.char3# c1 c2 c3))
                     _ -> case (l +# 3#) ==# l of
                       1# -> Fail#
-                      _ -> case indexChar8# s 3# of
+                      _ -> case Chunk.unsafeIndexChar8# s 3# of
                         c4 -> Ok# (p +# 4#) (i +# 4#) u (C# (Utf8.char4# c1 c2 c3 c4))
 {-# INLINE anyChar #-}
 
@@ -84,7 +81,7 @@ anyChar_ :: forall s u e. ByteChunk s => Parsec s u e ()
 anyChar_ = Parsec $ \s l i p u ->
   case i ==# l of
     1# -> Fail#
-    _ -> case indexChar8# s i of
+    _ -> case Chunk.unsafeIndexChar8# s i of
       c1 ->
         case c1 `leChar#` '\x7F'# of
           1# -> Ok# (p +# 1#) (i +# 1#) u ()
@@ -98,7 +95,7 @@ anyChar_ = Parsec $ \s l i p u ->
 anyCharAscii :: forall chunk u e. ByteChunk chunk => Parsec chunk u e Char
 anyCharAscii = Parsec $ \s l i p u -> case i ==# l of
   1# -> Fail#
-  _ -> case indexChar8# s i of
+  _ -> case Chunk.unsafeIndexChar8# s i of
     c -> case c `leChar#` '\x7F'# of
       1# -> Ok# (p +# 1#) (i +# 1#) u (C# c)
       _ -> Fail#
@@ -111,9 +108,9 @@ satisfyChar f = Parsec $ \s l i p u -> case runParsec# (anyChar @chunk) s l i p 
   _ -> Fail#
 {-# INLINE satisfyChar #-}
 
-isLatinLetter :: Char -> Bool
-isLatinLetter c = ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
-{-# INLINE isLatinLetter #-}
+isAsciiLetter :: Char -> Bool
+isAsciiLetter c = ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
+{-# INLINE isAsciiLetter #-}
 
 isAsciiDigit :: Char -> Bool
 isAsciiDigit c = '0' <= c && c <= '9'

@@ -149,3 +149,13 @@ takeWhileSuceeds parser = withParsecOff# $ \i -> Parsec $ go i
       Ok# p i u _ -> go i0 s l i p u
       Err# e -> Err# e
 {-# INLINE takeWhileSuceeds #-}
+
+slice :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e (Chunk.ChunkSlice chunk)
+slice (Parsec f) = Parsec $ \s l i0 p u -> case f s l i0 p u of
+  Ok# p i u _a -> Ok# p i u (Chunk.convertSlice# @chunk (Chunk.Slice# (# s, i0, i -# i0 #)))
+  x -> unsafeCoerceRes# x
+{-# INLINE slice #-}
+
+manySlice :: Chunk s => Parsec s u e a -> Parsec s u e (Chunk.ChunkSlice s)
+manySlice = slice . many_
+{-# INLINE manySlice #-}

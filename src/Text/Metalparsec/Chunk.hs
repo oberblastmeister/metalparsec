@@ -4,8 +4,6 @@
 module Text.Metalparsec.Chunk where
 
 import Data.ByteString (ByteString)
-import Data.ByteString qualified as B
-import Data.ByteString.Internal qualified as B.Internal
 import Data.ByteString.Short (ShortByteString)
 import Data.ByteString.Short qualified
 import Data.Kind (Type)
@@ -13,24 +11,13 @@ import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Primitive.ByteArray qualified as ByteArray
 import Data.Text (Text)
 import Data.Word (Word8)
-import Foreign qualified
 import GHC.Exts
-import GHC.ForeignPtr
-  ( ForeignPtr (..),
-    ForeignPtrContents (PlainPtr),
-    withForeignPtr,
-  )
-import GHC.IO (IO (..))
-import GHC.IO.Unsafe (unsafeDupablePerformIO)
 import GHC.TypeLits qualified as TypeLits
-import GHC.Word (Word8 (..))
-import Text.Metalparsec.Util (accursedUnutterablePerformIO, pattern UnsafeText#)
+import Text.Metalparsec.PureMutableByteArray (PureMutableByteArray#)
+import Text.Metalparsec.PureMutableByteArray qualified as PureMutableByteArray
+import Text.Metalparsec.Util (pattern UnsafeText#)
 
-newtype UnsafePureMutableArray# = UnsafePureMutableArray# (MutableByteArray# RealWorld)
-
-type TokenChunk c = (Chunk c, TokenOffset (Token c))
-
-newtype Slice# s = Slice# (# BaseArray# s, Int#, Int# #)
+newtype Slice# s = Slice# {getSlice# :: (# BaseArray# s, Int#, Int# #)}
 
 data Slice s = Slice !(BaseArray# s) !Int !Int
 
@@ -40,13 +27,9 @@ data Bytes = Bytes
     len :: !Int
   }
 
-data UnliftedUnit# :: UnliftedType where
-  UnliftedUnit# :: UnliftedUnit#
+type TokenChunk c = (Chunk c, TokenOffset (Token c))
 
-data UnliftedForeignPtr :: Type -> UnliftedType where
-  UnliftedForeignPtr :: ForeignPtr a -> UnliftedForeignPtr a
-
-type ByteChunk c = (Chunk c, Token c ~ Word8, BaseArray# c ~ ByteArray#)
+type ByteChunk c = (Chunk c, Token c ~ Word8, IsByteArray# (BaseArray# c))
 
 type TokenTag c = Tag (Token c)
 
@@ -65,6 +48,10 @@ class TokenOffset t where
 class IsArray# (a :: UnliftedType) x | a -> x where
   unsafeIndex# :: a -> Int# -> x
 
+class IsArray# a Word8 => IsByteArray# (a :: UnliftedType) where
+  unsafeIndexChar8# :: a -> Int# -> Char#
+  unsafeCompare# :: ByteArray# -> Int# -> a -> Int# -> Int# -> Int#
+
 class (IsArray# (BaseArray# s) (Token s), GetTokenTag (Token s)) => Chunk s where
   type Token s :: Type
   type BaseArray# s :: UnliftedType
@@ -82,10 +69,21 @@ instance IsArray# ByteArray# Word8 where
   unsafeIndex# (ByteArray -> bs) (I# -> i) = ByteArray.indexByteArray bs i
   {-# INLINE unsafeIndex# #-}
 
-instance IsArray# UnsafePureMutableArray# Word8 where
-  unsafeIndex# (UnsafePureMutableArray# marr) i = accursedUnutterablePerformIO $ IO $ \s -> case readWord8Array# marr i s of
-    (# s, w #) -> (# s, W8# w #)
+instance IsByteArray# ByteArray# where
+  unsafeIndexChar8# = indexCharArray#
+  unsafeCompare# = compareByteArrays#
+  {-# INLINE unsafeCompare# #-}
+  {-# INLINE unsafeIndexChar8# #-}
+
+instance IsArray# PureMutableByteArray# Word8 where
+  unsafeIndex# = PureMutableByteArray.unsafeIndex#
   {-# INLINE unsafeIndex# #-}
+
+instance IsByteArray# PureMutableByteArray# where
+  unsafeIndexChar8#  = PureMutableByteArray.unsafeIndexChar8# 
+  unsafeCompare# bs1 i1 bs2 i2 l = PureMutableByteArray.unsafeCompare# bs1 i1 bs2 i2 l
+  {-# INLINE unsafeIndexChar8# #-}
+  {-# INLINE unsafeCompare# #-}
 
 instance Chunk ByteArray where
   type Token ByteArray = Word8
@@ -116,23 +114,9 @@ instance Chunk Text where
 
 instance Chunk ByteString where
   type Token ByteString = Word8
-  type BaseArray# ByteString = UnsafePureMutableArray#
+  type BaseArray# ByteString = PureMutableByteArray#
   type ChunkSlice ByteString = ByteString
-  toSlice# bs@(B.Internal.BS fp@(ForeignPtr _ fpc) l) =
-    let res :: Slice ByteString = unsafeDupablePerformIO $ withForeignPtr fp $ \p -> case fpc of
-          PlainPtr marr -> do
-            let base = Ptr (mutableByteArrayContents# marr)
-                off = p `Foreign.minusPtr` base
-            pure $ Slice (UnsafePureMutableArray# marr) off (off + l)
-          _ -> case B.copy bs of
-            B.Internal.BS fp@(ForeignPtr _ fpc) l -> withForeignPtr fp $ \p -> case fpc of
-              PlainPtr marr -> do
-                let base = Ptr (mutableByteArrayContents# marr)
-                    off = p `Foreign.minusPtr` base
-                pure $ Slice (UnsafePureMutableArray# marr) off (off + l)
-              _ -> error "should be PlainPtr"
-     in case res of
-          Slice marr (I# off) (I# len) -> Slice# (# marr, off, len #)
-  convertSlice# (Slice# (# (UnsafePureMutableArray# marr), off, len #)) = B.Internal.BS (ForeignPtr (mutableByteArrayContents# marr `plusAddr#` off) (PlainPtr marr)) (I# (len -# off))
+  toSlice# bs = Slice# (PureMutableByteArray.fromByteString# bs)
+  convertSlice# (Slice# bs) = PureMutableByteArray.sliceByteString# bs
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}

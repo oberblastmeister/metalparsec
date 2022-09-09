@@ -17,7 +17,7 @@ ws :: P e ()
 ws = many_ $ $$(string " ") <|> $$(string "\n")
 
 ident :: P e ()
-ident = some_ (satisfyAscii isLatinLetter) >> ws
+ident = some_ (satisfyAscii isAsciiLetter) >> ws
 
 sexp :: P e ()
 sexp = branch open (some_ sexp >> close) ident

@@ -35,7 +35,9 @@ type Res# u e a =
       Int#,
       -- i
       Int#,
+      -- u
       u,
+      -- a
       a
     #) |
     (# #) |
@@ -58,6 +60,7 @@ pattern Fail# = (# | (# #) | #)
 
 unsafeCoerceRes# :: Res# u e a -> Res# u e b
 unsafeCoerceRes# = unsafeCoerce#
+{-# INLINE unsafeCoerceRes# #-}
 
 instance Functor (Parsec s u e) where
   fmap f (Parsec g) = Parsec $ \s l i p u -> case g s l i p u of

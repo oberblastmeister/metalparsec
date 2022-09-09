@@ -7,37 +7,30 @@ import Data.Text qualified as T
 import GHC.Exts
 import GHC.Word
 import Language.Haskell.TH (Code, Exp, ExpQ, Q)
-import Text.Metalparsec.Chunk (ByteChunk, Chunk)
+import Text.Metalparsec.Chunk (ByteChunk)
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.Combinators
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Util
 
-string :: forall s u e. (ByteChunk s) => String -> Code Q (Parsec s u e ())
-string s = [||ensureLen len *> $$(go bss)||]
-  where
-    len = textUtf8Len $ T.pack s
-    -- don't bother changing the positions in between
-    -- just calculate the position and then set it at the end
-    bss = encodeCharUtf8 <$> s
-    go (bs : bss) = [||$$(unsafeCharBytes bs) *> $$(go bss)||]
-    go [] = [||pure ()||]
+type Up = Code Q
+
+string :: ByteChunk s => String -> Up (Parsec s u e ())
+string = bytes . textUtf8Bytes . T.pack
 
 string' :: String -> Q Exp
-string' s = [|ensureLen len *> $(go bss)|]
-  where
-    len = textUtf8Len $ T.pack s
-    bss = encodeCharUtf8 <$> s
-    go (bs : bss) = [|$(bytes' bs) *> $(go bss)|]
-    go [] = [|pure ()|]
+string' = bytes' . textUtf8Bytes . T.pack
 
-char :: forall s u e. (ByteChunk s) => Char -> Code Q (Parsec s u e ())
-char c = [||ensureLen len *> $$(unsafeCharBytes bs)||]
-  where
-    len = charUtf8Len c
-    bs = charUtf8Bytes c
+char :: forall s u e. (ByteChunk s) => Char -> Up (Parsec s u e ())
+char = bytes . charUtf8Bytes
 
-unsafeBytes :: forall s u e. (ByteChunk s) => [Word8] -> Code Q (Parsec s u e ())
+bytes :: ByteChunk s => [Word8] -> Up (Parsec s u e ())
+bytes bs = let len = length bs in [||ensureLen len *> $$(unsafeBytes bs)||]
+
+bytes' :: [Word8] -> ExpQ
+bytes' bs = let len = length bs in [|ensureLen len *> $(unsafeBytes' bs)|]
+
+unsafeBytes :: forall s u e. (ByteChunk s) => [Word8] -> Up (Parsec s u e ())
 unsafeBytes = go
   where
     go (b : bs) = [||unsafeByte b *> $$(go bs)||]
@@ -48,6 +41,13 @@ unsafeBytes' = go
   where
     go (b : bs) = [|unsafeByte' b *> $(go bs)|]
     go [] = [|pure ()|]
+
+unsafeByte :: ByteChunk s => Word8 -> Parsec s u e ()
+unsafeByte (W8# w) = Parsec $ \s _l i p u -> case Chunk.unsafeIndex# s i of
+  (W8# w') -> case w `eqWord8#` w' of
+    1# -> Ok# (p +# 1#) (i +# 1#) u ()
+    _ -> Fail#
+
 -- [||
 -- case $$(unsafeScanListUnchecked @Word8 bs) of
 --   (p :: Parsec chunk u e a) ->
@@ -62,27 +62,27 @@ unsafeBytes' = go
 --         p *> (Parsec $ \_ _ p i u -> Ok# (Chunk.onChar# 1# p) i u ())
 --     |]
 
--- unsafeScanListUnchecked :: (TH.Lift a, Chunk.TokenTag s ~ a, Chunk s) => [a] -> Code Q (Parsec s u e ())
+-- unsafeScanListUnchecked :: (TH.Lift a, Chunk.TokenTag s ~ a, Chunk s) => [a] -> Up (Parsec s u e ())
 -- unsafeScanListUnchecked = go
 --   where
 --     go (x : xs) = [||unsafeTake1 x *> $$(go xs)||]
 --     go [] = [||pure ()||]
 
-unsafeByte :: ByteChunk s => Word8 -> Parsec s u e ()
-unsafeByte t =
-  Parsec $ \s _l i p u ->
-    case Chunk.unsafeIndex# s i of
-      t' | t == t' -> Ok# (p +# 1#) (i +# 1#) u ()
-      _ -> Fail#
+-- unsafeByte :: ByteChunk s => Word8 -> Up (Parsec s u e ())
+-- unsafeByte t =
+--   [||
+--   Parsec $ \s _l i p u ->
+--     case Chunk.unsafeIndex# s i of
+--       t' | t == t' -> Ok# (p +# 1#) (i +# 1#) u ()
+--       _ -> Fail#
+--   ||]
 
-unsafeByte' :: ByteChunk s => Word8 -> Code Q (Parsec s u e ())
-unsafeByte' t =
-  [||
-  Parsec $ \s _l i p u ->
-    case Chunk.unsafeIndex# s i of
-      t' | t == t' -> Ok# (p +# 1#) (i +# 1#) u ()
-      _ -> Fail#
-  ||]
+-- unsafeByte' :: ByteChunk s => Word8 -> Parsec s u e ()
+-- unsafeByte' t =
+--   Parsec $ \s _l i p u ->
+--     case Chunk.unsafeIndex# s i of
+--       t' | t == t' -> Ok# (p +# 1#) (i +# 1#) u ()
+--       _ -> Fail#
 
 -- unsafeByte' :: Word8 -> Int -> ExpQ
 -- unsafeByte' t at =

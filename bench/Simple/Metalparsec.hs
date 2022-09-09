@@ -18,7 +18,6 @@ where
 import Data.Text (Text)
 import Text.Metalparsec
 import Text.Metalparsec.TH
-import Data.ByteString (ByteString)
 
 type Parser e a = Parsec Text () e a
 
@@ -26,7 +25,7 @@ ws, open, close, ident, sexp, src :: Parser e ()
 open = $$(string "(") >> ws
 close = $$(string ")") >> ws
 ws = many_ $ $$(string " ") <|> $$(string "\n")
-ident = some_ (satisfyAscii isLatinLetter) >> ws
+ident = some_ (satisfyAscii isAsciiLetter) >> ws
 sexp = branch open (some_ sexp >> close) ident
 src = sexp >> eof
 

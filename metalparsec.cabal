@@ -1,4 +1,4 @@
-cabal-version:      3.8
+cabal-version:      3.6
 name:               metalparsec
 version:            0.1.0.0
 
@@ -20,6 +20,7 @@ maintainer:         littlebubu.shu@gmail.com
 -- copyright:
 -- category:
 extra-source-files: CHANGELOG.md
+tested-with: GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.2
 
 common common-options
   -- yay
@@ -95,6 +96,7 @@ common common-options
 library
   import: common-options
   hs-source-dirs: src
+  c-sources: cbits/metalparsec.c
   exposed-modules:
     Text.Metalparsec
     Text.Metalparsec.Util
@@ -104,6 +106,7 @@ library
     Text.Metalparsec.Combinators
     Text.Metalparsec.Char
     Text.Metalparsec.TH
+    Text.Metalparsec.PureMutableByteArray
   ghc-options: -O2
   -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
   -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
