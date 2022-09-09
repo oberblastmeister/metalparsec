@@ -1,12 +1,19 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
 
 module Text.Metalparsec.TH where
 
 import Data.Text qualified as T
 import GHC.Exts
 import Compat.Word
-import Language.Haskell.TH (Code, Exp, ExpQ, Q)
+import Language.Haskell.TH (Exp, ExpQ, Q)
+#if MIN_VERSION_base(4,15,0)
+import Language.Haskell.TH (Code)
+#else
+import Language.Haskell.TH (TExp)
+#endif
+
 import Text.Metalparsec.Chunk (ByteChunk)
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.Combinators
@@ -14,7 +21,11 @@ import Text.Metalparsec.Internal
 import Text.Metalparsec.Util
 import Text.Metalparsec.UnboxedNumerics
 
+#if MIN_VERSION_base(4,15,0)
 type Up = Code Q
+#else
+type Up a = Q (TExp a)
+#endif
 
 string :: ByteChunk s => String -> Up (Parsec s u e ())
 string = bytes . textUtf8Bytes . T.pack

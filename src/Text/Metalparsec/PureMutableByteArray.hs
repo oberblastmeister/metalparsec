@@ -11,6 +11,7 @@ module Text.Metalparsec.PureMutableByteArray
   )
 where
 
+import GHC.Exts.Compat
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.ByteString.Internal qualified as B.Internal
@@ -18,18 +19,18 @@ import Data.Primitive.ByteArray (MutableByteArray (..))
 import Data.Word (Word8)
 import Foreign qualified
 import Foreign.C.Types (CInt (..), CSize (..))
-import GHC.Exts
 import GHC.ForeignPtr
-  ( ForeignPtr (..),
+  ( 
+    ForeignPtr (..),
     ForeignPtrContents (PlainPtr),
-    withForeignPtr,
   )
+import Foreign.ForeignPtr (
+  withForeignPtr)
 import GHC.IO (IO (..))
 import GHC.IO.Unsafe (unsafeDupablePerformIO)
 import GHC.Int (Int32 (..))
 import GHC.Word (Word8 (..))
 import Text.Metalparsec.Util (accursedUnutterablePerformIO)
-import Text.Metalparsec.PrimOps
 
 newtype PureMutableByteArray# = UnsafePureMutableArray# (MutableByteArray# RealWorld)
 
@@ -47,13 +48,13 @@ fromByteString# :: ByteString -> (# PureMutableByteArray#, Int#, Int# #)
 fromByteString# bs@(B.Internal.PS fp@(ForeignPtr _ fpc) o l) =
   let res = unsafeDupablePerformIO $ withForeignPtr fp $ \p -> case fpc of
         PlainPtr marr -> do
-          let base = Ptr (mutableByteArrayContents## marr)
+          let base = Ptr (mutableByteArrayContents# marr)
               off = p `Foreign.minusPtr` base
           pure $ (MutableByteArray marr, off, (off + l + o))
         _ -> case B.copy bs of
           B.Internal.PS fp@(ForeignPtr _ fpc) o l -> withForeignPtr fp $ \p -> case fpc of
             PlainPtr marr -> do
-              let base = Ptr (mutableByteArrayContents## marr)
+              let base = Ptr (mutableByteArrayContents# marr)
                   off = p `Foreign.minusPtr` base
               pure $ (MutableByteArray marr, off, (off + l + o))
             _ -> error "should be PlainPtr"
@@ -63,7 +64,7 @@ fromByteString# bs@(B.Internal.PS fp@(ForeignPtr _ fpc) o l) =
 
 sliceByteString# :: (# PureMutableByteArray#, Int#, Int# #) -> ByteString
 sliceByteString# ((# (UnsafePureMutableArray# marr), off, len #)) =
-  B.Internal.PS (ForeignPtr (mutableByteArrayContents## marr) (PlainPtr marr)) (I# off) (I# (len -# off))
+  B.Internal.PS (ForeignPtr (mutableByteArrayContents# marr) (PlainPtr marr)) (I# off) (I# (len -# off))
 {-# INLINE sliceByteString# #-}
 
 unsafeCompare# :: ByteArray# -> Int# -> PureMutableByteArray# -> Int# -> Int# -> Int#

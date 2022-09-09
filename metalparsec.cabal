@@ -93,9 +93,12 @@ library
   import: common-options
   hs-source-dirs: src
   c-sources: cbits/metalparsec.c
-  exposed-modules:
+  other-modules:
     Compat.Int
     Compat.Word
+    GHC.Exts.Compat
+    GHC.Exts.Compat.Internal
+  exposed-modules:
     Text.Metalparsec
     Text.Metalparsec.Util
     Text.Metalparsec.Utf8
@@ -105,7 +108,6 @@ library
     Text.Metalparsec.Char
     Text.Metalparsec.TH
     Text.Metalparsec.PureMutableByteArray
-    Text.Metalparsec.PrimOps
     Text.Metalparsec.UnboxedNumerics
   ghc-options: -O2
   -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
