@@ -6,11 +6,10 @@ module Text.Metalparsec.Utf8
   )
 where
 
+import Compat.Word
 import Data.Text.Internal.Encoding.Utf8 qualified as T.Internal.Encoding.Utf8
 import GHC.Exts
 import GHC.Exts qualified as Exts
-import Compat.Word
-import Text.Metalparsec.Util (unI#)
 
 lengthByLeader :: Word8 -> Int
 lengthByLeader w = Exts.inline T.Internal.Encoding.Utf8.utf8LengthByLeader w

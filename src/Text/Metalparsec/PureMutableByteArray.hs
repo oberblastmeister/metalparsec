@@ -28,7 +28,6 @@ import Foreign.ForeignPtr (
   withForeignPtr)
 import GHC.IO (IO (..))
 import GHC.IO.Unsafe (unsafeDupablePerformIO)
-import GHC.Int (Int32 (..))
 import GHC.Word (Word8 (..))
 import Text.Metalparsec.Util (accursedUnutterablePerformIO)
 

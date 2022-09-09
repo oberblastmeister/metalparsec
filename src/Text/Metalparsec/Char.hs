@@ -2,9 +2,7 @@ module Text.Metalparsec.Char where
 
 import Data.Text (Text)
 import Data.Text qualified as T
-import Data.Text.Internal.Encoding.Utf8 qualified as Text.Internal.Encoding.Utf8
 import GHC.Exts
-import GHC.Exts qualified as Exts
 import Text.Metalparsec.Chunk (ByteChunk)
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.Combinators

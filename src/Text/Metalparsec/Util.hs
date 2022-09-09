@@ -1,5 +1,6 @@
 module Text.Metalparsec.Util where
 
+import Compat.Word
 import Data.ByteString qualified as B
 import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Text (Text)
@@ -7,10 +8,9 @@ import Data.Text qualified as T
 import Data.Text.Array qualified
 import Data.Text.Encoding qualified as T
 import Data.Text.Internal qualified
-import GHC.Base (ord, unsafeChr)
+import GHC.Base (ord)
 import GHC.Exts
 import GHC.IO (IO (..))
-import Compat.Word
 
 unI# :: Int -> Int#
 unI# (I# i#) = i#
