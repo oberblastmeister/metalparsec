@@ -86,7 +86,7 @@ anyChar_ = Parsec $ \s l i p u ->
         case c1 `leChar#` '\x7F'# of
           1# -> Ok# (p +# 1#) (i +# 1#) u ()
           _ ->
-            case Exts.inline Text.Internal.Encoding.Utf8.utf8LengthByLeader (charToWord8 (C# c1)) of
+            case Utf8.lengthByLeader (charToWord8 (C# c1)) of
               I# len# -> case i +# len# <# l of
                 1# -> Ok# (p +# len#) (i +# len#) u ()
                 _ -> Fail#

@@ -1,5 +1,5 @@
 module Text.Metalparsec.Utf8
-  ( lengthByLeader#,
+  ( lengthByLeader,
     char2#,
     char3#,
     char4#,
@@ -9,12 +9,12 @@ where
 import Data.Text.Internal.Encoding.Utf8 qualified as T.Internal.Encoding.Utf8
 import GHC.Exts
 import GHC.Exts qualified as Exts
-import GHC.Word (Word8 (..))
+import Compat.Word
 import Text.Metalparsec.Util (unI#)
 
-lengthByLeader# :: Word8# -> Int#
-lengthByLeader# w# = unI# (Exts.inline T.Internal.Encoding.Utf8.utf8LengthByLeader (W8# w#))
-{-# INLINE lengthByLeader# #-}
+lengthByLeader :: Word8 -> Int
+lengthByLeader w = Exts.inline T.Internal.Encoding.Utf8.utf8LengthByLeader w
+{-# INLINE lengthByLeader #-}
 
 char2# :: Char# -> Char# -> Char#
 char2# c1# c2# =

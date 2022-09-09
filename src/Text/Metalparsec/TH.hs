@@ -5,13 +5,14 @@ module Text.Metalparsec.TH where
 
 import Data.Text qualified as T
 import GHC.Exts
-import GHC.Word
+import Compat.Word
 import Language.Haskell.TH (Code, Exp, ExpQ, Q)
 import Text.Metalparsec.Chunk (ByteChunk)
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.Combinators
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Util
+import Text.Metalparsec.UnboxedNumerics
 
 type Up = Code Q
 
@@ -44,7 +45,7 @@ unsafeBytes' = go
 
 unsafeByte :: ByteChunk s => Word8 -> Parsec s u e ()
 unsafeByte (W8# w) = Parsec $ \s _l i p u -> case Chunk.unsafeIndex# s i of
-  (W8# w') -> case w `eqWord8#` w' of
+  (W8# w') -> case w `eqWord8##` w' of
     1# -> Ok# (p +# 1#) (i +# 1#) u ()
     _ -> Fail#
 

@@ -1,10 +1,11 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
 
 module Text.Metalparsec.Chunk where
 
 import Data.ByteString (ByteString)
-import Data.ByteString.Short (ShortByteString)
+import Data.ByteString.Short.Internal (ShortByteString(..))
 import Data.ByteString.Short qualified
 import Data.Kind (Type)
 import Data.Primitive.ByteArray (ByteArray (..))
@@ -16,6 +17,10 @@ import GHC.TypeLits qualified as TypeLits
 import Text.Metalparsec.PureMutableByteArray (PureMutableByteArray#)
 import Text.Metalparsec.PureMutableByteArray qualified as PureMutableByteArray
 import Text.Metalparsec.Util (pattern UnsafeText#)
+
+#if __GLASGOW_HASKELL__ < 920
+type UnliftedType = TYPE 'UnliftedRep
+#endif
 
 newtype Slice# s = Slice# {getSlice# :: (# BaseArray# s, Int#, Int# #)}
 
@@ -61,7 +66,6 @@ class (IsArray# (BaseArray# s) (Token s), GetTokenTag (Token s)) => Chunk s wher
 
 instance GetTokenTag Word8 where
   type Tag Word8 = Word8
-  type Tag Word8 = Word8
   tokenTag = id
   {-# INLINE tokenTag #-}
 
@@ -80,7 +84,7 @@ instance IsArray# PureMutableByteArray# Word8 where
   {-# INLINE unsafeIndex# #-}
 
 instance IsByteArray# PureMutableByteArray# where
-  unsafeIndexChar8#  = PureMutableByteArray.unsafeIndexChar8# 
+  unsafeIndexChar8# = PureMutableByteArray.unsafeIndexChar8# 
   unsafeCompare# bs1 i1 bs2 i2 l = PureMutableByteArray.unsafeCompare# bs1 i1 bs2 i2 l
   {-# INLINE unsafeIndexChar8# #-}
   {-# INLINE unsafeCompare# #-}
@@ -98,7 +102,7 @@ instance Chunk ShortByteString where
   type Token ShortByteString = Word8
   type BaseArray# ShortByteString = ByteArray#
   type ChunkSlice ShortByteString = Bytes
-  toSlice# (Data.ByteString.Short.SBS bs#) = Slice# (# bs#, 0#, 0# #)
+  toSlice# (SBS bs#) = Slice# (# bs#, 0#, 0# #)
   convertSlice# (Slice# (# ByteArray -> bytes, I# -> off, I# -> len #)) = Bytes {bytes, off, len}
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}

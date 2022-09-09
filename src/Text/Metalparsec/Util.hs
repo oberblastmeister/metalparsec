@@ -1,4 +1,3 @@
-
 module Text.Metalparsec.Util where
 
 import Data.ByteString qualified as B
@@ -11,7 +10,7 @@ import Data.Text.Internal qualified
 import GHC.Base (ord, unsafeChr)
 import GHC.Exts
 import GHC.IO (IO (..))
-import GHC.Word
+import Compat.Word
 
 unI# :: Int -> Int#
 unI# (I# i#) = i#
@@ -25,13 +24,13 @@ indexChar8 :: ByteArray -> Int -> Char
 indexChar8 (ByteArray bs#) (I# i#) = C# (indexCharArray# bs# i#)
 {-# INLINE indexChar8 #-}
 
-char8 :: Word8 -> Char
-char8 = unsafeChr . fromIntegral
-{-# INLINE char8 #-}
+-- char8 :: Word8 -> Char
+-- char8 = unsafeChr . fromIntegral
+-- {-# INLINE char8 #-}
 
-char8# :: Word8# -> Char
-char8# w# = char8 (W8# w#)
-{-# INLINE char8# #-}
+-- char8# :: Word8# -> Char
+-- char8# w = C# (chr# (word2Int# (word8ToWord# w)))
+-- {-# INLINE char8# #-}
 
 charToWord8 :: Char -> Word8
 charToWord8 = fromIntegral . ord
@@ -39,7 +38,6 @@ charToWord8 = fromIntegral . ord
 
 pattern UnsafeText# :: ByteArray# -> Int# -> Int# -> Data.Text.Internal.Text
 pattern UnsafeText# bs# off# len# = Data.Text.Internal.Text (Data.Text.Array.ByteArray bs#) (I# off#) (I# len#)
-{-# INLINE UnsafeText# #-}
 
 {-# COMPLETE UnsafeText# #-}
 

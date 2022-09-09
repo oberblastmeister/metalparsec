@@ -35,7 +35,6 @@ common common-options
     ScopedTypeVariables,
     NamedFieldPuns,
     DuplicateRecordFields,
-    OverloadedRecordDot,
     GeneralizedNewtypeDeriving,
     DataKinds,
     ConstraintKinds,
@@ -64,7 +63,6 @@ common common-options
     MagicHash,
     UnboxedTuples,
     UnliftedNewtypes,
-    UnliftedDatatypes,
     RoleAnnotations,
   ghc-options:
     -Wall
@@ -94,6 +92,8 @@ library
   hs-source-dirs: src
   c-sources: cbits/metalparsec.c
   exposed-modules:
+    Compat.Int
+    Compat.Word
     Text.Metalparsec
     Text.Metalparsec.Util
     Text.Metalparsec.Utf8
@@ -103,6 +103,8 @@ library
     Text.Metalparsec.Char
     Text.Metalparsec.TH
     Text.Metalparsec.PureMutableByteArray
+    Text.Metalparsec.PrimOps
+    Text.Metalparsec.UnboxedNumerics
   ghc-options: -O2
   -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
   -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
