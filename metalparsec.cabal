@@ -15,7 +15,7 @@ maintainer: littlebubu.shu@gmail.com
 copyright: 2022 Brian Shu
 category: Parsing
 extra-source-files: CHANGELOG.md
-tested-with: GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.4
+tested-with: GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.4, GHC == 9.4.2
 
 common common-options
   default-extensions:
@@ -46,7 +46,7 @@ common common-options
     DeriveGeneric,
     DeriveDataTypeable,
     DeriveLift,
-    DeriveTraversable ,
+    DeriveTraversable,
     GeneralizedNewtypeDeriving,
     GADTs,
     PolyKinds,

@@ -1,1 +1,2 @@
 installed: +all -text
+benchmarks: False
