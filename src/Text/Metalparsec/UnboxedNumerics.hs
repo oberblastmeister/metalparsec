@@ -1,7 +1,5 @@
 {-# LANGUAGE CPP #-}
 
-module Text.Metalparsec.UnboxedNumerics where
-
 {- | Compatibility layer for numeric primops.
 
 GHC 9.2 standardized unboxed numeric primops. Prior, it was quite asymmetric.
@@ -24,6 +22,7 @@ The general pattern is as follows:
 
 Also see: https://gitlab.haskell.org/ghc/ghc/-/wikis/Unboxed-Numerics
 -}
+module Text.Metalparsec.UnboxedNumerics where
 
 import GHC.Exts
 
