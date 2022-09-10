@@ -3,10 +3,10 @@
 module Javascript.Common where
 
 import Control.DeepSeq (NFData)
-import Data.Char (digitToInt, isAlpha, isAlphaNum, isDigit, isSpace, isUpper)
+import Data.Char (isAlpha, isAlphaNum)
 import Data.Set (fromList, member)
-import GHC.Generics (Generic)
 import Data.Text (Text)
+import GHC.Generics (Generic)
 
 type JSProgram = [JSElement]
 
@@ -33,40 +33,57 @@ data JSStm
 data JSVar = JSVar Text (Maybe JSExpr') deriving (Show)
 
 data JSExpr'
-  = JSAsgn JSExpr' JSExpr'
-  | JSCond JSExpr' JSExpr' JSExpr'
-  | JSOr JSExpr' JSExpr'
-  | JSAnd JSExpr' JSExpr'
-  | JSBitOr JSExpr' JSExpr'
-  | JSBitXor JSExpr' JSExpr'
-  | JSBitAnd JSExpr' JSExpr'
-  | JSEq JSExpr' JSExpr'
-  | JSNe JSExpr' JSExpr'
-  | JSLt JSExpr' JSExpr'
-  | JSGt JSExpr' JSExpr'
-  | JSLe JSExpr' JSExpr'
-  | JSGe JSExpr' JSExpr'
-  | JSShl JSExpr' JSExpr'
-  | JSShr JSExpr' JSExpr'
-  | JSAdd JSExpr' JSExpr'
-  | JSSub JSExpr' JSExpr'
-  | JSMul JSExpr' JSExpr'
-  | JSDiv JSExpr' JSExpr'
-  | JSMod JSExpr' JSExpr'
-  | JSUnary JSUnary
-  deriving (Show)
-
-data JSUnary
-  = JSPlus JSUnary
-  | JSNeg JSUnary
-  | JSBitNeg JSUnary
-  | JSNot JSUnary
-  | JSInc JSUnary
-  | JSDec JSUnary
+  = JSCond JSExpr' JSExpr' JSExpr'
+  | JSBin JSExpr' JSBinOp JSExpr'
+  | JSUnary JSUnaryOp JSExpr'
   | JSNew JSCons
   | JSDel JSMember
   | JSMember JSMember
   | JSCons JSCons
+  deriving (Show)
+
+data JSBinOp
+  = JSOr
+  | JSAnd
+  | JSBitOr
+  | JSBitXor
+  | JSBitAnd
+  | JSEq
+  | JSNe
+  | JSLt
+  | JSGt
+  | JSLe
+  | JSGe
+  | JSShl
+  | JSShr
+  | JSAdd
+  | JSSub
+  | JSMul
+  | JSDiv
+  | JSMod
+  | JSAsgn
+  deriving (Show)
+
+-- data JSUnary
+--   = JSPlus JSUnary
+--   | JSNeg JSUnary
+--   | JSBitNeg JSUnary
+--   | JSNot JSUnary
+--   | JSInc JSUnary
+--   | JSDec JSUnary
+--   | JSNew JSCons
+--   | JSDel JSMember
+--   | JSMember JSMember
+--   | JSCons JSCons
+--   deriving (Show)
+
+data JSUnaryOp
+  = JSPlus
+  | JSNeg
+  | JSBitNeg
+  | JSNot
+  | JSInc
+  | JSDec
   deriving (Show)
 
 deriving instance Generic JSElement
@@ -77,7 +94,9 @@ deriving instance Generic JSVar
 
 deriving instance Generic JSExpr'
 
-deriving instance Generic JSUnary
+deriving instance Generic JSUnaryOp
+
+deriving instance Generic JSBinOp
 
 deriving instance Generic JSMember
 
@@ -91,9 +110,11 @@ deriving instance NFData JSStm
 
 deriving instance NFData JSVar
 
-deriving instance NFData JSExpr'
+deriving instance NFData JSBinOp
 
-deriving instance NFData JSUnary
+deriving instance NFData JSUnaryOp
+
+deriving instance NFData JSExpr'
 
 deriving instance NFData JSMember
 
@@ -101,17 +122,17 @@ deriving instance NFData JSCons
 
 deriving instance NFData JSAtom
 
-jsPlus (JSUnary u) = JSUnary (JSPlus u)
+-- jsPlus (JSUnary u) = JSUnary (JSPlus u)
 
-jsNeg (JSUnary u) = JSUnary (JSNeg u)
+-- jsNeg (JSUnary u) = JSUnary (JSNeg u)
 
-jsBitNeg (JSUnary u) = JSUnary (JSBitNeg u)
+-- jsBitNeg (JSUnary u) = JSUnary (JSBitNeg u)
 
-jsNot (JSUnary u) = JSUnary (JSNot u)
+-- jsNot (JSUnary u) = JSUnary (JSNot u)
 
-jsInc (JSUnary u) = JSUnary (JSInc u)
+-- jsInc (JSUnary u) = JSUnary (JSInc u)
 
-jsDec (JSUnary u) = JSUnary (JSDec u)
+-- jsDec (JSUnary u) = JSUnary (JSDec u)
 
 data JSMember
   = JSPrimExp JSAtom

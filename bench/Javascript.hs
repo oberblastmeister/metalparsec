@@ -7,19 +7,20 @@ import Data.ByteString qualified
 import Data.Text (Text)
 import Data.Text.IO qualified
 import Gauge
-import Javascript.Attoparsec qualified as Attoparsec
+-- import Javascript.Attoparsec qualified as Attoparsec
 import Javascript.Common
 import Javascript.Metalparsec qualified as Metalparsec
 import Text.Metalparsec qualified as Metalparsec
-import Javascript.MetalparsecTH qualified as MetalparsecTH
+-- import Javascript.MetalparsecTH qualified as MetalparsecTH
 
 main :: Benchmark
 main =
   bgroup
     "javascript"
-    [ jsTest text "Atto" (attoParse Attoparsec.javascript),
-      jsTest text "Metal" (metalParse Metalparsec.javascript),
-      jsTest text "MetalTH" (metalParse MetalparsecTH.javascript)
+    [
+      --  jsTest text "Atto" (attoParse Attoparsec.javascript),
+      jsTest text "Metal" (metalParse Metalparsec.javascript)
+      -- jsTest text "MetalTH" (metalParse MetalparsecTH.javascript)
     ]
   where
     jsTest :: (NFData rep, NFData res) => (FilePath -> IO rep) -> String -> (rep -> res) -> Benchmark

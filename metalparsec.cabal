@@ -156,11 +156,11 @@ benchmark bench
     Json.Common
     Javascript
       Javascript.Common
-      Javascript.Attoparsec
-      Javascript.Attoparsec.Extended
+      -- Javascript.Attoparsec
+      -- Javascript.Attoparsec.Extended
       Javascript.Metalparsec
       Javascript.Metalparsec.Extended
-      Javascript.MetalparsecTH
+      -- Javascript.MetalparsecTH
   build-depends:
     metalparsec,
     attoparsec,

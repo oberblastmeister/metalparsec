@@ -137,7 +137,6 @@ evalParser :: Chunk s => Parsec s u e a -> u -> s -> Result e a
 evalParser p u s = fst <$> Exts.inline runParser p u s
 {-# INLINEABLE evalParser #-}
 
-
 fail :: Parsec s u e a
 fail = Parsec $ \_ _ _ _ _ -> Fail#
 {-# INLINE fail #-}
@@ -188,3 +187,42 @@ notFollowedBy p1 p2 = p1 <* fails p2
 err :: e -> Parsec s u e a
 err e = Parsec $ \_ _ _ _ _ -> Err# e
 {-# INLINE err #-}
+
+-- | An analogue of the list `foldl` function: first parse a @b@, then parse zero or more @a@-s,
+--   and combine the results in a left-nested way by the @b -> a -> b@ function. Note: this is not
+--   the usual `chainl` function from the parsec libraries!
+chainl :: (b -> a -> b) -> Parsec s u e b -> Parsec s u e a -> Parsec s u e b
+chainl f start elem = start >>= go
+  where
+    go b = do { !a <- elem; go $! f b a } <|> pure b
+{-# INLINE chainl #-}
+
+chainlSep :: Parsec s u e a -> (a -> a -> a) -> Parsec s u e b -> Parsec s u e a
+chainlSep elem f sep = chainl f elem $ sep *> elem
+{-# INLINE chainlSep #-}
+
+-- | An analogue of the list `foldr` function: parse zero or more @a@-s, terminated by a @b@, and
+--   combine the results in a right-nested way using the @a -> b -> b@ function. Note: this is not
+--   the usual `chainr` function from the parsec libraries!
+chainr :: (a -> b -> b) -> Parsec s u e a -> Parsec s u e b -> Parsec s u e b
+chainr f (Parsec elem) (Parsec end) = Parsec go
+  where
+    go s l i p u = case elem s l i p u of
+      Ok# p i u a -> case go s l i p u of
+        Ok# p i u b -> let !b' = f a b in Ok# p i u b'
+        x -> x
+      Fail# -> end s l i p u
+      Err# e -> Err# e
+{-# INLINE chainr #-}
+
+chainrSep :: Parsec s u e a -> (a -> a -> a) -> Parsec s u e b -> Parsec s u e a
+chainrSep elem f sep = chainr f elem $ sep *> elem
+{-# INLINE chainrSep #-}
+
+chainPre :: Parsec s u e a -> (a -> a) -> Parsec s u e b -> Parsec s u e a
+chainPre elem f pre = chainr (const f) pre elem
+{-# INLINE chainPre #-}
+
+chainPost :: Parsec s u e a -> (a -> a) -> Parsec s u e b -> Parsec s u e a
+chainPost elem f post = chainl (\b _ -> f b) elem post
+{-# INLINE chainPost #-}
