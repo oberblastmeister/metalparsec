@@ -160,6 +160,7 @@ benchmark bench
       Javascript.Attoparsec.Extended
       Javascript.Metalparsec
       Javascript.Metalparsec.Extended
+      Javascript.MetalparsecTH
   build-depends:
     metalparsec,
     attoparsec,

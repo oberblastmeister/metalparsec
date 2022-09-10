@@ -1,5 +1,6 @@
 module Javascript.Metalparsec where
 
+import Control.Applicative (empty, liftA2, liftA3, many, some, (<**>))
 import Control.Monad.Combinators (option, sepBy, sepBy1, skipMany)
 import Data.Char (digitToInt, isSpace, isUpper)
 import Data.Text (Text)
@@ -13,9 +14,8 @@ javascript = whitespace *> many element <* eof
   where
     element :: Parser JSElement
     element =
-      keyword "function" *> liftA3 JSFunction identifier (parens (commaSep identifier)) compound
+      (keyword "function" *> (JSFunction <$> identifier <*> (parens (commaSep identifier)) <*> compound))
         <|> JSStm <$> stmt
-        <|> err "function"
     compound :: Parser JSCompoundStm
     compound = braces (many stmt)
     stmt :: Parser JSStm
@@ -36,7 +36,6 @@ javascript = whitespace *> many element <* eof
         <|> keyword "return" *> (JSReturn <$> optExpr)
         <|> JSBlock <$> compound
         <|> JSNaked <$> varsOrExprs
-        <|> err "stmt"
     varsOrExprs :: Parser (Either [JSVar] JSExpr)
     varsOrExprs = (keyword "var" *> commaSep1 variable) <+> expr
     variable :: Parser JSVar
@@ -150,8 +149,10 @@ javascript = whitespace *> many element <* eof
           )
       )
         *> whitespace
-    identifier :: Parser String
-    identifier = ((identStart <:> many identLetter) >?> jsUnreservedName) <* whitespace
+
+    identifier :: Parser Text
+    identifier = (slice ((identStart <:> many identLetter) >?> jsUnreservedName)) <* whitespace
+
     naturalOrFloat :: Parser (Either Int Double)
     naturalOrFloat = natFloat <* whitespace
 
@@ -210,13 +211,13 @@ javascript = whitespace *> many element <* eof
     brackets :: Parser a -> Parser a
     brackets = between (symbol '[') (symbol ']')
     braces :: Parser a -> Parser a
-    braces = between (symbol '{') (symbol '}')
+    braces = between (symbol '{') (cut (symbol '}') "expected closing")
     dot :: Parser ()
-    dot = asciiChar '.'
+    dot = symbol '.'
     semi :: Parser ()
-    semi = asciiChar ';'
+    semi = symbol ';'
     comma :: Parser ()
-    comma = asciiChar ','
+    comma = symbol ','
     commaSep :: Parser a -> Parser [a]
     commaSep p = sepBy p comma
     commaSep1 :: Parser a -> Parser [a]
@@ -224,10 +225,10 @@ javascript = whitespace *> many element <* eof
 
     -- Let bindings
     spaces :: Parser ()
-    spaces = skipSome space
+    spaces = some_ space
 
     oneLineComment :: Parser ()
-    oneLineComment = void (token "//" *> skipMany (satisfyChar (/= '\n')))
+    oneLineComment = void (token "//" *> many_ (satisfyChar (/= '\n')))
 
     multiLineComment :: Parser ()
     multiLineComment =

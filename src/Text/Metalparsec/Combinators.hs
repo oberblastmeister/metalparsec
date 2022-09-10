@@ -137,6 +137,7 @@ evalParser :: Chunk s => Parsec s u e a -> u -> s -> Result e a
 evalParser p u s = fst <$> Exts.inline runParser p u s
 {-# INLINEABLE evalParser #-}
 
+
 fail :: Parsec s u e a
 fail = Parsec $ \_ _ _ _ _ -> Fail#
 {-# INLINE fail #-}

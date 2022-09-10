@@ -1,6 +1,5 @@
 module Javascript.Metalparsec.Extended
   ( module Data.Functor,
-    module Control.Applicative,
     module Control.Monad,
     module Javascript.Metalparsec.Extended,
   )

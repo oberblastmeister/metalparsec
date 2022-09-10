@@ -1,42 +1,44 @@
-module Javascript.Attoparsec where
+module Javascript.MetalparsecTH where
 
+import Control.Applicative (empty, liftA2, liftA3, many, some, (<**>))
+import Control.Monad.Combinators (option, sepBy, sepBy1, skipMany)
 import Data.Char (digitToInt, isSpace, isUpper)
-import Data.Maybe (catMaybes)
 import Data.Text (Text)
-import Data.Text qualified as T
-import Javascript.Attoparsec.Extended
 import Javascript.Common
+import Javascript.Metalparsec.Extended
+import Text.Metalparsec
+import Text.Metalparsec.TH hiding (char)
 import Text.Read (readMaybe)
 
 javascript :: Parser JSProgram
-javascript = whitespace *> many element <* endOfInput
+javascript = whitespace *> many element <* eof
   where
     element :: Parser JSElement
     element =
-      keyword "function" *> liftA3 JSFunction identifier (parens (commaSep identifier)) compound
+      (lex $$(string "function") *> (JSFunction <$> identifier <*> (parens (commaSep identifier)) <*> compound))
         <|> JSStm <$> stmt
     compound :: Parser JSCompoundStm
     compound = braces (many stmt)
     stmt :: Parser JSStm
     stmt =
       semi $> JSSemi
-        <|> keyword "if" *> liftA3 JSIf parensExpr stmt (maybeP (keyword "else" *> stmt))
-        <|> keyword "while" *> liftA2 JSWhile parensExpr stmt
-        <|> ( keyword "for"
+        <|> lex $$(string "if") *> liftA3 JSIf parensExpr stmt (maybeP (lex $$(string "else") *> stmt))
+        <|> lex $$(string "while") *> liftA2 JSWhile parensExpr stmt
+        <|> ( lex $$(string "for")
                 *> parens
-                  ( try (liftA2 JSForIn varsOrExprs (keyword "in" *> expr))
+                  ( (liftA2 JSForIn varsOrExprs (lex $$(string "in") *> expr))
                       <|> liftA3 JSFor (maybeP varsOrExprs <* semi) (optExpr <* semi) optExpr
                   )
                 <*> stmt
             )
-        <|> keyword "break" $> JSBreak
-        <|> keyword "continue" $> JSContinue
-        <|> keyword "with" *> liftA2 JSWith parensExpr stmt
-        <|> keyword "return" *> (JSReturn <$> optExpr)
+        <|> lex $$(string "break") $> JSBreak
+        <|> lex $$(string "continue") $> JSContinue
+        <|> lex $$(string "with") *> liftA2 JSWith parensExpr stmt
+        <|> lex $$(string "return") *> (JSReturn <$> optExpr)
         <|> JSBlock <$> compound
         <|> JSNaked <$> varsOrExprs
     varsOrExprs :: Parser (Either [JSVar] JSExpr)
-    varsOrExprs = (keyword "var" *> commaSep1 variable) <+> expr
+    varsOrExprs = (lex $$(string "var") *> commaSep1 variable) <+> expr
     variable :: Parser JSVar
     variable = liftA2 JSVar identifier (maybeP (symbol '=' *> asgn))
     parensExpr :: Parser JSExpr
@@ -75,20 +77,20 @@ javascript = whitespace *> many element <* endOfInput
               operator ">" $> JSGt
             ],
           InfixL [operator "==" $> JSEq, operator "!=" $> JSNe],
-          InfixL [try (operator "&") $> JSBitAnd],
+          InfixL [operator "&" $> JSBitAnd],
           InfixL [operator "^" $> JSBitXor],
-          InfixL [try (operator "|") $> JSBitOr],
+          InfixL [operator "|" $> JSBitOr],
           InfixL [operator "&&" $> JSAnd],
           InfixL [operator "||" $> JSOr]
         ]
         (JSUnary <$> memOrCon)
     memOrCon :: Parser JSUnary
     memOrCon =
-      keyword "delete" *> (JSDel <$> member)
-        <|> keyword "new" *> (JSCons <$> con)
+      lex $$(string "delete") *> (JSDel <$> member)
+        <|> lex $$(string "new") *> (JSCons <$> con)
         <|> JSMember <$> member
     con :: Parser JSCons
-    con = liftA2 JSQual (keyword "this" $> "this") (dot *> conCall) <|> conCall
+    con = liftA2 JSQual (lex $$(string "this") $> "this") (dot *> conCall) <|> conCall
     conCall :: Parser JSCons
     conCall =
       identifier
@@ -111,22 +113,51 @@ javascript = whitespace *> many element <* endOfInput
         <|> JSId <$> identifier
         <|> either JSInt JSFloat <$> naturalOrFloat
         <|> JSString <$> stringLiteral
-        <|> JSTrue <$ keyword "true"
-        <|> JSFalse <$ keyword "false"
-        <|> JSNull <$ keyword "null"
-        <|> JSThis <$ keyword "this"
+        <|> JSTrue <$ lex $$(string "true")
+        <|> JSFalse <$ lex $$(string "false")
+        <|> JSNull <$ lex $$(string "null")
+        <|> JSThis <$ lex $$(string "this")
 
-    -- Token Parsers
     space :: Parser ()
-    space = void (satisfy isSpace)
+    space = void (satisfyAscii isSpace)
+
     whitespace :: Parser ()
-    whitespace = skipMany (spaces <|> oneLineComment <|> multiLineComment)
-    keyword :: Text -> Parser ()
-    keyword s = try (string s *> notIdentLetter) *> whitespace
+    whitespace = many_ (spaces <|> oneLineComment <|> multiLineComment)
+
+    -- keyword :: Text -> Parser ()
+    -- keyword s = text s `notFollowedBy` identLetter *> whitespace
+
+    -- keyword :: String -> Code Q (Parser ())
+    -- keyword s = [||$$(string s) `notFollowedBy` satisfyChar jsIdentLetter *> whitespace||]
+    lex p = p `notFollowedBy` satisfyChar jsIdentLetter *> whitespace
+
     operator :: Text -> Parser ()
-    operator op = try (string op *> notOpLetter) *> whitespace
+    operator op =
+      ( notFollowedBy
+          (text op)
+          ( satisfyAscii $
+              \c ->
+                c == '+'
+                  || c == '-'
+                  || c == '*'
+                  || c == '/'
+                  || c == '='
+                  || c == '<'
+                  || c == '>'
+                  || c == '!'
+                  || c == '~'
+                  || c == '&'
+                  || c == '|'
+                  || c == '.'
+                  || c == '%'
+                  || c == '^'
+          )
+      )
+        *> whitespace
+
     identifier :: Parser Text
-    identifier = T.pack <$> (try ((identStart <:> many identLetter) >?> jsUnreservedName) <* whitespace)
+    identifier = (slice ((identStart <:> many identLetter) >?> jsUnreservedName)) <* whitespace
+
     naturalOrFloat :: Parser (Either Int Double)
     naturalOrFloat = natFloat <* whitespace
 
@@ -157,40 +188,40 @@ javascript = whitespace *> many element <* endOfInput
         f fract exp n = readMaybe (show n ++ fract ++ exp)
 
     fraction :: Parser [Char]
-    fraction = char '.' <:> some (oneOf ['0' .. '9'])
+    fraction = (asciiChar '.' $> '.') <:> some (satisfyAscii isAsciiDigit)
 
     exponent' :: Parser [Char]
     exponent' =
       ('e' :)
-        <$> ( oneOf "eE"
-                *> ( (((:) <$> oneOf "+-") <|> pure id)
+        <$> ( satisfyAscii (\c -> c == 'e' || c == 'E')
+                *> ( (((:) <$> satisfyAscii (\c -> c == '+' || c == '-')) <|> pure id)
                        <*> (show <$> decimal)
                    )
             )
 
     decimal :: Parser Int
-    decimal = number 10 (oneOf ['0' .. '9'])
-    hexadecimal = oneOf "xX" *> number 16 (oneOf (['a' .. 'f'] ++ ['A' .. 'F'] ++ ['0' .. '9']))
-    octal = oneOf "oO" *> number 8 (oneOf ['0' .. '7'])
+    decimal = number 10 (satisfyAscii isAsciiDigit)
+    hexadecimal = satisfyAscii (\c -> c == 'x' || c == 'X') *> number 16 (satisfyAscii (\c -> (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || isAsciiDigit c))
+    octal = satisfyAscii (\c -> c == 'o' || c == 'O') *> number 8 (satisfyAscii (\c -> c >= '0' && c <= '7'))
 
     number :: Int -> Parser Char -> Parser Int
     number base = pfoldl1 (\x d -> base * x + digitToInt d) 0
 
     stringLiteral :: Parser Text
-    stringLiteral = (T.pack . catMaybes) <$> between (token "\"") (token "\"") (many stringChar) <* whitespace
-    symbol :: Char -> Parser Char
-    symbol c = try (char c) <* whitespace
+    stringLiteral = slice (between (asciiChar '\"') (asciiChar '\"') (many stringChar)) <* whitespace
+    symbol :: Char -> Parser ()
+    symbol c = asciiChar c <* whitespace
     parens :: Parser a -> Parser a
     parens = between (symbol '(') (symbol ')')
     brackets :: Parser a -> Parser a
     brackets = between (symbol '[') (symbol ']')
     braces :: Parser a -> Parser a
-    braces = between (symbol '{') (symbol '}')
-    dot :: Parser Char
+    braces = between (symbol '{') (cut (symbol '}') "expected closing")
+    dot :: Parser ()
     dot = symbol '.'
-    semi :: Parser Char
+    semi :: Parser ()
     semi = symbol ';'
-    comma :: Parser Char
+    comma :: Parser ()
     comma = symbol ','
     commaSep :: Parser a -> Parser [a]
     commaSep p = sepBy p comma
@@ -199,40 +230,38 @@ javascript = whitespace *> many element <* endOfInput
 
     -- Let bindings
     spaces :: Parser ()
-    spaces = skipSome space
+    spaces = some_ space
 
     oneLineComment :: Parser ()
-    oneLineComment = void (token "//" *> skipMany (satisfy (/= '\n')))
+    oneLineComment = void (token "//" *> many_ (satisfyChar (/= '\n')))
 
     multiLineComment :: Parser ()
     multiLineComment =
       let inComment =
             void (token "*/")
-              <|> skipSome (satisfy (/= '*')) *> inComment
+              <|> skipSome (satisfyChar (/= '*')) *> inComment
               <|> char '*' *> inComment
        in token "/*" *> inComment
 
-    identStart = satisfy jsIdentStart
-    identLetter = satisfy jsIdentLetter
-    notIdentLetter = peekChar >?> (maybe True (not . jsIdentLetter))
-    notOpLetter = peekChar >?> (maybe True (notInClass "+-*/=<>!~&|.%^"))
+    identStart = satisfyChar jsIdentStart
+    identLetter = satisfyChar jsIdentLetter
 
     escChrs :: [Char]
     escChrs = "abfntv\\\"'0123456789xo^ABCDEFGHLNRSUV"
 
-    stringChar :: Parser (Maybe Char)
-    stringChar = Just <$> satisfy jsStringLetter <|> stringEscape
+    stringChar :: Parser ()
+    stringChar = void (satisfyChar jsStringLetter) <|> stringEscape
 
-    stringEscape :: Parser (Maybe Char)
+    stringEscape :: Parser ()
     stringEscape =
       token "\\"
-        *> ( token "&" $> Nothing
-               <|> spaces *> token "\\" $> Nothing
-               <|> Just <$> escapeCode
+        *> ( token "&"
+               <|> spaces *> token "\\"
+               <|> void escapeCode
            )
 
     escapeCode :: Parser Char
-    escapeCode = match escChrs (oneOf escChrs) escCode empty
+    escapeCode = match escChrs (satisfyChar (`elem` escChrs)) escCode empty
       where
         escCode 'a' = pure ('\a')
         escCode 'b' = pure ('\b')
@@ -243,7 +272,7 @@ javascript = whitespace *> many element <* endOfInput
         escCode '\\' = pure ('\\')
         escCode '"' = pure ('"')
         escCode '\'' = pure ('\'')
-        escCode '^' = (\c -> toEnum (fromEnum c - fromEnum 'A' + 1)) <$> satisfy isUpper
+        escCode '^' = (\c -> toEnum (fromEnum c - fromEnum 'A' + 1)) <$> satisfyChar isUpper
         escCode 'A' = token "CK" $> ('\ACK')
         escCode 'B' = token "S" $> ('\BS') <|> token "EL" $> ('\BEL')
         escCode 'C' = token "R" $> ('\CR') <|> token "AN" $> ('\CAN')

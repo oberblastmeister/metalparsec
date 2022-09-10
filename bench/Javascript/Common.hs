@@ -14,7 +14,7 @@ type JSCompoundStm = [JSStm]
 
 type JSExpr = [JSExpr']
 
-data JSElement = JSFunction String [String] JSCompoundStm | JSStm JSStm deriving (Show)
+data JSElement = JSFunction Text [Text] JSCompoundStm | JSStm JSStm deriving (Show)
 
 data JSStm
   = JSSemi
@@ -30,7 +30,7 @@ data JSStm
   | JSNaked (Either [JSVar] JSExpr)
   deriving (Show)
 
-data JSVar = JSVar String (Maybe JSExpr') deriving (Show)
+data JSVar = JSVar Text (Maybe JSExpr') deriving (Show)
 
 data JSExpr'
   = JSAsgn JSExpr' JSExpr'
@@ -121,14 +121,14 @@ data JSMember
   deriving (Show)
 
 data JSCons
-  = JSQual String JSCons
-  | JSConCall String JSExpr
+  = JSQual Text JSCons
+  | JSConCall Text JSExpr
   deriving (Show)
 
 data JSAtom
   = JSParens JSExpr
   | JSArray JSExpr
-  | JSId String
+  | JSId Text
   | JSInt Int
   | JSFloat Double
   | JSString Text
