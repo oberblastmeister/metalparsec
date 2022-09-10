@@ -3,6 +3,7 @@ module Text.Metalparsec.Char where
 import Data.Text (Text)
 import Data.Text qualified as T
 import GHC.Exts
+import GHC.Stack (HasCallStack)
 import Text.Metalparsec.Chunk (ByteChunk)
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.Combinators
@@ -40,6 +41,23 @@ satisfyAscii f = Parsec $ \s l i p u -> case l ==# i of
 char :: ByteChunk s => Char -> Parsec s u e ()
 char = text . T.singleton
 {-# INLINE char #-}
+
+asciiChar :: (HasCallStack, ByteChunk s) => Char -> Parsec s u e ()
+asciiChar c =
+  if c < '\x7f'
+    then unsafeAsciiChar c
+    else error "Text.Metalparsec.Char: not ascii char"
+{-# INLINE asciiChar #-}
+
+unsafeAsciiChar :: ByteChunk s => Char -> Parsec s u e ()
+unsafeAsciiChar (C# c) =
+  Parsec $ \s l i p u -> case l ==# i of
+    1# -> Fail#
+    _ -> case Chunk.unsafeIndexChar8# s i of
+      c' -> case c `eqChar#` c' of
+        1# -> Ok# (p +# 1#) (i +# 1#) u ()
+        _ -> Fail#
+{-# INLINE unsafeAsciiChar #-}
 
 text :: ByteChunk chunk => Text -> Parsec chunk u e ()
 text (UnsafeText# bs# off# len#) = Parsec $ \s l i p u ->

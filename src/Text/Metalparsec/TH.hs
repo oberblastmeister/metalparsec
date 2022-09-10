@@ -36,6 +36,9 @@ string' = bytes' . textUtf8Bytes . T.pack
 char :: forall s u e. (ByteChunk s) => Char -> Up (Parsec s u e ())
 char = bytes . charUtf8Bytes
 
+char' :: Char -> ExpQ
+char' = bytes' . charUtf8Bytes
+
 bytes :: ByteChunk s => [Word8] -> Up (Parsec s u e ())
 bytes bs = let len = length bs in [||ensureLen len *> $$(unsafeBytes bs)||]
 

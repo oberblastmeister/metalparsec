@@ -148,10 +148,15 @@ benchmark bench
       Simple.FPBasic
       Simple.FPStateful
       Simple.Megaparsec
+      Simple.MetalparsecTH
       Simple.Metalparsec
     Json.Metalparsec
     Json.Attoparsec
     Json.Common
+    Javascript
+      Javascript.Common
+      Javascript.Attoparsec
+      Javascript.Attoparsec.Extended
   build-depends:
     metalparsec,
     attoparsec,

@@ -12,6 +12,7 @@ import Simple.FPBasic qualified as FPBasic
 import Simple.FPStateful qualified as FPStateful
 import Simple.Megaparsec qualified as Megaparsec
 import Simple.Metalparsec qualified as Metalparsec
+import Simple.MetalparsecTH qualified as MetalparsecTH
 
 sexpInp :: String
 sexpInp =
@@ -34,6 +35,7 @@ main =
         bgroup
           "sexp"
           [ bench "metalparsec" $ whnf Metalparsec.runSexp sexpInpText,
+            bench "metalparsecth" $ whnf MetalparsecTH.runSexp sexpInpText,
             bench "fpbasic" $ whnf FPBasic.runSexp sexpInp,
             bench "fpstateful" $ whnf FPStateful.runSexp sexpInp,
             bench "attoparsec" $ whnf Attoparsec.runSexp sexpInp,
@@ -43,6 +45,7 @@ main =
         bgroup
           "long keyword"
           [ bench "metalparsec" $ whnf Metalparsec.runLongws longwsInpText,
+            bench "metalparsecth" $ whnf MetalparsecTH.runLongws longwsInpText,
             bench "fpbasic" $ whnf FPBasic.runLongws longwsInp,
             bench "fpstateful" $ whnf FPStateful.runLongws longwsInp,
             bench "attoparsec" $ whnf Attoparsec.runLongws longwsInp,
@@ -52,6 +55,7 @@ main =
         bgroup
           "numeral csv"
           [ bench "metalparsec" $ whnf Metalparsec.runNumcsv numcsvInpText,
+            bench "metalparsecth" $ whnf MetalparsecTH.runNumcsv numcsvInpText,
             bench "fpbasic" $ whnf FPBasic.runNumcsv numcsvInp,
             bench "fpstateful" $ whnf FPStateful.runNumcsv numcsvInp,
             bench "attoparsec" $ whnf Attoparsec.runNumcsv numcsvInp,

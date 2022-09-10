@@ -11,7 +11,6 @@ module Text.Metalparsec.PureMutableByteArray
   )
 where
 
-import GHC.Exts.Compat
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.ByteString.Internal qualified as B.Internal
@@ -19,13 +18,9 @@ import Data.Primitive.ByteArray (MutableByteArray (..))
 import Data.Word (Word8)
 import Foreign qualified
 import Foreign.C.Types (CInt (..), CSize (..))
-import GHC.ForeignPtr
-  ( 
-    ForeignPtr (..),
-    ForeignPtrContents (PlainPtr),
-  )
-import Foreign.ForeignPtr (
-  withForeignPtr)
+import Foreign.ForeignPtr (withForeignPtr)
+import GHC.Exts.Compat
+import GHC.ForeignPtr (ForeignPtr (..), ForeignPtrContents (PlainPtr))
 import GHC.IO (IO (..))
 import GHC.IO.Unsafe (unsafeDupablePerformIO)
 import GHC.Word (Word8 (..))
