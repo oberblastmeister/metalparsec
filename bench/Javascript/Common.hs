@@ -6,6 +6,7 @@ import Control.DeepSeq (NFData)
 import Data.Char (digitToInt, isAlpha, isAlphaNum, isDigit, isSpace, isUpper)
 import Data.Set (fromList, member)
 import GHC.Generics (Generic)
+import Data.Text (Text)
 
 type JSProgram = [JSElement]
 
@@ -130,7 +131,7 @@ data JSAtom
   | JSId String
   | JSInt Int
   | JSFloat Double
-  | JSString String
+  | JSString Text
   | JSTrue
   | JSFalse
   | JSNull

@@ -95,7 +95,7 @@ some_ pa = pa >> many_ pa
 (<|>) = (Applicative.<|>)
 {-# INLINE (<|>) #-}
 
-infixr 6 <|>
+infixr 3 <|>
 
 -- | Branch on a Parsec: if the first argument succeeds, continue with the second, else with the third.
 --   This can produce slightly more efficient code than `(<|>)`. Moreover, `ḃranch` does not
@@ -159,3 +159,31 @@ slice (Parsec f) = Parsec $ \s l i0 p u -> case f s l i0 p u of
 manySlice :: Chunk s => Parsec s u e a -> Parsec s u e (Chunk.ChunkSlice s)
 manySlice = slice . many_
 {-# INLINE manySlice #-}
+
+-- | Save the parsing state, then run a parser, then restore the state.
+lookahead :: Parsec s u e a -> Parsec s u e a
+lookahead (Parsec f) = Parsec $ \s l i p u ->
+  case f s l i p u of
+    Ok# _ _ _ a -> Ok# p i u a
+    x -> x
+{-# INLINE lookahead #-}
+
+-- | Convert a parsing failure to a success.
+fails :: Parsec s u e a -> Parsec s u e ()
+fails (Parsec f) = Parsec $ \s l i p u ->
+  case f s l i p u of
+    Ok# _ _ _ _ -> Fail#
+    Fail# -> Ok# p i u ()
+    Err# e -> Err# e
+{-# INLINE fails #-}
+
+-- | Succeed if the first parser succeeds and the second one fails.
+notFollowedBy :: Parsec s u e a -> Parsec s u e b -> Parsec s u e a
+notFollowedBy p1 p2 = p1 <* fails p2
+{-# INLINE notFollowedBy #-}
+
+-- | Throw a parsing error. By default, parser choice `(<|>)` can't backtrack
+--   on parser error. Use `try` to convert an error to a recoverable failure.
+err :: e -> Parsec s u e a
+err e = Parsec $ \_ _ _ _ _ -> Err# e
+{-# INLINE err #-}

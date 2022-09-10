@@ -4,6 +4,7 @@
 module Text.Metalparsec.Internal where
 
 import Control.Applicative (Alternative (..), liftA2)
+import Control.DeepSeq (NFData (..))
 import Control.Monad (MonadPlus)
 import Control.Monad qualified as Monad
 import Data.Bifoldable
@@ -138,7 +139,7 @@ instance Alternative (Parsec s u e) where
     where
       go xs s l i p u = case f s l i p u of
         Ok# p i u x -> go (x : xs) s l i p u
-        Fail# -> Ok# p i u $! reverse xs
+        Fail# -> Ok# p i u $ reverse xs
         Err# e -> Err# e
   {-# INLINE many #-}
 
@@ -211,6 +212,12 @@ instance Bifoldable Result where
 instance Bitraversable Result where
   bitraverse f g = bisequenceA . bimap f g
 
+instance (NFData e, NFData a) => NFData (Result e a) where
+  rnf = \case
+    OK x -> rnf x
+    Fail -> ()
+    Err e -> rnf e
+
 withParsecOff# :: (Int# -> Parsec s u e a) -> Parsec s u e a
 withParsecOff# f = Parsec $ \s l i p u -> runParsec# (f i) s l i p u
 {-# INLINE withParsecOff# #-}
@@ -218,3 +225,9 @@ withParsecOff# f = Parsec $ \s l i p u -> runParsec# (f i) s l i p u
 setInt# :: Int# -> Parsec s u e ()
 setInt# p = Parsec $ \_s _l i _p u -> Ok# p i u ()
 {-# INLINE setInt# #-}
+
+maybeResult :: Result e a -> Maybe a
+maybeResult = \case
+  OK a -> Just a
+  _ -> Nothing
+{-# INLINE maybeResult #-}

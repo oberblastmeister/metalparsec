@@ -85,6 +85,7 @@ common common-options
     vector,
     vector-stream,
     template-haskell,
+    deepseq,
   if impl(ghc < 9.2)
     build-depends:
       word-compat
@@ -157,6 +158,8 @@ benchmark bench
       Javascript.Common
       Javascript.Attoparsec
       Javascript.Attoparsec.Extended
+      Javascript.Metalparsec
+      Javascript.Metalparsec.Extended
   build-depends:
     metalparsec,
     attoparsec,
@@ -168,6 +171,7 @@ benchmark bench
     vector,
     scientific,
     deepseq,
+    parser-combinators,
   ghc-options:
     -Wno-incomplete-patterns
     -O2

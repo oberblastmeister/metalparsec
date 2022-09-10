@@ -38,6 +38,15 @@ satisfyAscii f = Parsec $ \s l i p u -> case l ==# i of
       _ -> Fail#
 {-# INLINE satisfyAscii #-}
 
+-- | The predicate must not return true for chars that are not ascii.
+unsafeSatisfyAscii :: forall chunk u e. ByteChunk chunk => (Char -> Bool) -> Parsec chunk u e Char
+unsafeSatisfyAscii f = Parsec $ \s l i p u -> case l ==# i of
+  1# -> Fail#
+  _ -> case Chunk.unsafeIndexChar8# s i of
+    c | f (C# c) -> Ok# (p +# 1#) (i +# 1#) u (C# c)
+    _ -> Fail#
+{-# INLINE unsafeSatisfyAscii #-}
+
 char :: ByteChunk s => Char -> Parsec s u e ()
 char = text . T.singleton
 {-# INLINE char #-}

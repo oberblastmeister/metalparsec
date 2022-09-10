@@ -1,27 +1,29 @@
-module Javascript.Attoparsec.Extended
+module Javascript.Metalparsec.Extended
   ( module Data.Functor,
     module Control.Applicative,
-    module Data.Attoparsec.Text,
     module Control.Monad,
-    module Javascript.Attoparsec.Extended,
+    module Javascript.Metalparsec.Extended,
   )
 where
 
-import Control.Applicative (Alternative, empty, liftA2, liftA3, many, (<**>), (<|>))
+import Control.Applicative (empty, liftA2, liftA3, many, some, (<**>))
 import Control.Monad (MonadPlus)
-import Data.Attoparsec.Text hiding (match)
+import Control.Monad.Combinators (choice)
 import Data.Functor (void, ($>))
 import Data.List (foldl')
 import Data.Text (Text)
+import Text.Metalparsec
 
-token :: Text -> Parser Text
-token = try . string
+type Parser = Parsec Text () Text
+
+token :: Text -> Parser ()
+token = text
 
 between o c p = o *> p <* c
 
-oneOf = satisfy . inClass
+-- oneOf = satisfy . inClass
 
-noneOf = satisfy . notInClass
+-- noneOf = satisfy . notInClass
 
 match :: (Monad m, Eq a) => [a] -> m a -> (a -> m b) -> m b -> m b
 match xs p f def = p >>= (\x -> if elem x xs then f x else def)
@@ -29,10 +31,10 @@ match xs p f def = p >>= (\x -> if elem x xs then f x else def)
 skipSome :: Parser a -> Parser ()
 skipSome p = void (some p)
 
-some = many1
+-- some = many1
 
 maybeP :: Parser a -> Parser (Maybe a)
-maybeP p = option Nothing (Just <$> p)
+maybeP = optional
 
 fromMaybeP :: Monad m => m (Maybe a) -> m a -> m a
 fromMaybeP mmx d = mmx >>= maybe d return
