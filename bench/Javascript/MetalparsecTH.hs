@@ -156,7 +156,7 @@ javascript = whitespace *> many element <* eof
         *> whitespace
 
     identifier :: Parser Text
-    identifier = (slice ((identStart <:> many identLetter) >?> jsUnreservedName)) <* whitespace
+    identifier = (sliced ((identStart <:> many identLetter) >?> jsUnreservedName)) <* whitespace
 
     naturalOrFloat :: Parser (Either Int Double)
     naturalOrFloat = natFloat <* whitespace
@@ -208,7 +208,7 @@ javascript = whitespace *> many element <* eof
     number base = pfoldl1 (\x d -> base * x + digitToInt d) 0
 
     stringLiteral :: Parser Text
-    stringLiteral = slice (between (asciiChar '\"') (asciiChar '\"') (many stringChar)) <* whitespace
+    stringLiteral = sliced (between (asciiChar '\"') (asciiChar '\"') (many stringChar)) <* whitespace
     symbol :: Char -> Parser ()
     symbol c = asciiChar c <* whitespace
     parens :: Parser a -> Parser a

@@ -218,13 +218,26 @@ instance (NFData e, NFData a) => NFData (Result e a) where
     Fail -> ()
     Err e -> rnf e
 
-withParsecOff# :: (Int# -> Parsec s u e a) -> Parsec s u e a
-withParsecOff# f = Parsec $ \s l i p u -> runParsec# (f i) s l i p u
-{-# INLINE withParsecOff# #-}
+data Span = Span {start :: !Int, end :: !Int}
 
-setInt# :: Int# -> Parsec s u e ()
-setInt# p = Parsec $ \_s _l i _p u -> Ok# p i u ()
-{-# INLINE setInt# #-}
+-- | Return the consumed span of a parser.
+spanned :: Parsec s u e a -> Parsec s u e (a, Span)
+spanned (Parsec f) = Parsec $ \s l i p u -> case f s l i p u of
+  Ok# p' i u a -> Ok# p' i u (a, (Span (I# p) (I# p')))
+  x -> unsafeCoerce# x
+{-# INLINE spanned #-}
+
+getPos :: Parsec s u e Int
+getPos = Parsec $ \_s _l i p u -> Ok# p i u (I# p)
+{-# INLINE getPos #-}
+
+withOff# :: (Int# -> Parsec s u e a) -> Parsec s u e a
+withOff# f = Parsec $ \s l i p u -> runParsec# (f i) s l i p u
+{-# INLINE withOff# #-}
+
+withPos# :: (Int# -> Parsec s u e a) -> Parsec s u e a
+withPos# f = Parsec $ \s l i p u -> runParsec# (f p) s l i p u
+{-# INLINE withPos# #-}
 
 maybeResult :: Result e a -> Maybe a
 maybeResult = \case
