@@ -37,10 +37,12 @@ module Text.Metalparsec.Internal.UnboxedNumerics
     Int8##,
     Int16##,
     Int32##,
+    pattern W8###,
   )
 where
 
 import GHC.Exts
+import GHC.Word
 
 -- "Switch" wrappers: sized on >=9.2, native on <9.2
 byteSwap16## :: Word16## -> Word16##
@@ -58,6 +60,7 @@ eqWord32## :: Word32## -> Word32## -> Int#
 indexWord8OffAddr### :: Addr# -> Int# -> Word8#
 wordToWord8### :: Word# -> Word8#
 word8ToWord### :: Word8# -> Word#
+pattern W8### :: Word8# -> Word8
 {-# inline indexWord8OffAddr###  #-}
 {-# inline wordToWord8### #-}
 {-# inline word8ToWord### #-}
@@ -83,6 +86,8 @@ eqWord32## = eqWord32#
 indexWord8OffAddr### = indexWord8OffAddr#
 wordToWord8### = wordToWord8#
 word8ToWord### = word8ToWord#
+pattern W8### w# = W8# w#
+{-# INLINE W8### #-}
 
 #else
 -- GHC <9.2
@@ -113,6 +118,9 @@ word32ToInt32# w = narrow32Int# (word2Int# w)
 indexWord8OffAddr### a# i# = narrowWord8# (indexWord8OffAddr# a# i#)
 wordToWord8### = narrowWord8#
 word8ToWord### = extendWord8#
+pattern W8### w# <- W8# (narrowWord8# -> w#)
+  where
+    W8### w# = W8# (extendWord8# w#)
 
 #endif
 

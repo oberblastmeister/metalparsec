@@ -18,7 +18,6 @@ import Data.ByteString.Internal qualified as B.Internal
 import Data.Primitive.ByteArray (MutableByteArray (..))
 import Data.Word (Word8)
 import Foreign qualified
-import Foreign.C.Types (CInt (..), CSize (..))
 import Foreign.ForeignPtr (withForeignPtr)
 import GHC.Exts.Compat
 import GHC.ForeignPtr (ForeignPtr (..), ForeignPtrContents (PlainPtr))
@@ -27,6 +26,7 @@ import GHC.IO.Unsafe (unsafeDupablePerformIO)
 import GHC.Word (Word8 (..))
 import Text.Metalparsec.Internal.C qualified as C
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
+import Text.Metalparsec.Internal.UnboxedNumerics
 
 newtype PureMutableByteArray# = UnsafePureMutableArray# (MutableByteArray# RealWorld)
 
@@ -95,7 +95,7 @@ unsafeFind# (UnsafePureMutableArray# bs) o b =
       C.memchr_off'
         bs
         (fromIntegral $ I# o)
-        (fromIntegral $ W8# b)
+        (fromIntegral $ W8### b)
         (fromIntegral $ I# (sizeofMutableByteArray# bs -# o)) of
     I# i -> i
 {-# INLINE unsafeFind# #-}
