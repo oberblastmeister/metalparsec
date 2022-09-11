@@ -31,7 +31,7 @@ data Bytes = Bytes
     len :: !Int
   }
 
-type TokenChunk c = (Chunk c, TokenOffset (Token c))
+type TokenChunk c = (Chunk c, TokenOffset (Token c), NotText c)
 
 type ByteChunk c = (Chunk c, Token c ~ Word8, IsByteArray# (BaseArray# c))
 
@@ -39,7 +39,7 @@ type TokenTag c = Tag (Token c)
 
 type NotText :: Type -> Constraint
 type family NotText s where
-  NotText Text = TypeLits.TypeError (TypeLits.Text "You cannot take individual bytes from Text")
+  NotText Text = TypeLits.TypeError (TypeLits.Text "Text cannot be treated as a chunk of tokens. Text is utf-8 encoded, and taking individual bytes from Text would violate utf-8. Please use the functions in Text.Metalparsec.Text")
   NotText _ = ()
 
 class Eq (Tag t) => GetTokenTag t where

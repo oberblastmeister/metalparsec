@@ -1,9 +1,5 @@
-{-# OPTIONS_GHC -Wno-redundant-constraints #-}
-
 module Text.Metalparsec.Internal.Combinators
   ( ensureLen,
-    unsafeTake1,
-    take1,
     cut,
     optional,
     optional_,
@@ -57,21 +53,6 @@ ensureLen (I# len) = Parsec $ \_s l i p u ->
     1# -> Ok# p i u ()
     _ -> Fail#
 {-# INLINE ensureLen #-}
-
--- | Unsafely read a concrete byte from the input. It's not checked that the input has
-unsafeTake1 :: forall chunk u e. Chunk.TokenChunk chunk => Chunk.TokenTag chunk -> Parsec chunk u e ()
-unsafeTake1 t =
-  Parsec
-    ( \s _l i p u ->
-        case Chunk.unsafeIndex# s i of
-          t' | t == Chunk.tokenTag t' -> Ok# (p +# Chunk.tokenOffset# t') (i +# 1#) u ()
-          _ -> Fail#
-    )
-{-# INLINE unsafeTake1 #-}
-
-take1 :: forall chunk u e. (Chunk.TokenChunk chunk, Chunk.NotText chunk) => Chunk.TokenTag chunk -> Parsec chunk u e ()
-take1 t = ensureLen 1 *> unsafeTake1 t
-{-# INLINE take1 #-}
 
 -- | Convert a parsing failure to an error.
 cut :: Parsec s u e a -> e -> Parsec s u e a

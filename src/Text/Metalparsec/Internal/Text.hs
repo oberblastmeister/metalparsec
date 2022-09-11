@@ -4,10 +4,10 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import GHC.Exts
 import GHC.Stack (HasCallStack)
+import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
 import Text.Metalparsec.Internal.Combinators
-import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Utf8 qualified as Utf8
 import Text.Metalparsec.Internal.Util
 
@@ -77,7 +77,7 @@ text (UnsafeText# bs# off# len#) = Parsec $ \s l i p u ->
         _ -> Fail#
     _ -> Fail#
 
-anyChar :: forall chunk u e. ByteChunk chunk => Parsec chunk u e Char
+anyChar :: ByteChunk s => Parsec s u e Char
 anyChar = Parsec $ \s l i p u -> case i ==# l of
   1# -> Fail#
   _ -> case Chunk.unsafeIndexChar8# s i of
