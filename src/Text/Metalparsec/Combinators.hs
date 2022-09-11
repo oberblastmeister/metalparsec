@@ -7,7 +7,6 @@ import Control.Applicative qualified as Applicative
 -- import Data.Primitive.PrimArray
 -- import Data.Vector.Generic qualified as V
 import GHC.Exts
-import GHC.Exts qualified as Exts
 import Text.Metalparsec.Chunk (Chunk)
 import Text.Metalparsec.Chunk qualified as Chunk
 import Text.Metalparsec.Internal
@@ -40,17 +39,14 @@ cut :: Parsec s u e a -> e -> Parsec s u e a
 cut (Parsec f) e = Parsec $ \s l i p u -> case f s l i p u of
   Fail# -> Err# e
   x -> x
-{-# INLINE cut #-}
 
 -- | Convert a parsing failure to a `Maybe`. If possible, use `withOption` instead.
 optional :: Parsec s u e a -> Parsec s u e (Maybe a)
 optional p = (Just <$> p) <|> pure Nothing
-{-# INLINE optional #-}
 
 -- | Convert a parsing failure to a `()`.
 optional_ :: Parsec s u e a -> Parsec s u e ()
 optional_ p = (() <$ p) <|> pure ()
-{-# INLINE optional_ #-}
 
 -- | CPS'd version of `optional`. This is usually more efficient, since it gets rid of the
 --   extra `Maybe` allocation.
@@ -65,7 +61,6 @@ try :: Parsec s u e a -> Parsec s u e a
 try (Parsec f) = Parsec $ \s l i p u -> case f s l i p u of
   Err# _ -> Fail#
   x -> x
-{-# INLINE try #-}
 
 -- | Skip a Parsec zero more times.
 many_ :: Parsec s u e a -> Parsec s u e ()
@@ -105,14 +100,12 @@ branch pa pt pf = Parsec $ \s l i p u -> case runParsec# pa s l i p u of
   Ok# p i u _ -> runParsec# pt s l i p u
   Fail# -> runParsec# pf s l i p u
   Err# e -> Err# e
-{-# INLINE branch #-}
 
 -- | Succeed if the input is empty.
 eof :: Parsec s u e ()
 eof = Parsec $ \_s l i p u -> case l ==# i of
   1# -> Ok# p i u ()
   _ -> Fail#
-{-# INLINE eof #-}
 
 runParserWithAll ::
   forall chunk u e a.
@@ -127,19 +120,15 @@ runParserWithAll (Parsec f) u s = case Chunk.toSlice# @chunk s of
       Err# e -> Err e
       Fail# -> Fail
       Ok# _p i _u a -> OK (a, u, Chunk.convertSlice# @chunk (Chunk.Slice# (# s#, i, len# #)))
-{-# INLINEABLE runParserWithAll #-}
 
 runParser :: Chunk s => Parsec s u e a -> u -> s -> Result e (a, u)
-runParser p u s = (\(x, u, _) -> (x, u)) <$> Exts.inline runParserWithAll p u s
-{-# INLINEABLE runParser #-}
+runParser p u s = (\(x, u, _) -> (x, u)) <$> runParserWithAll p u s
 
 evalParser :: Chunk s => Parsec s u e a -> u -> s -> Result e a
-evalParser p u s = fst <$> Exts.inline runParser p u s
-{-# INLINEABLE evalParser #-}
+evalParser p u s = fst <$> runParser p u s
 
 fail :: Parsec s u e a
 fail = Parsec $ \_ _ _ _ _ -> Fail#
-{-# INLINE fail #-}
 
 takeWhileSuceeds :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e (Chunk.ChunkSlice chunk)
 takeWhileSuceeds parser = withParsecOff# $ \i -> Parsec $ go i
@@ -154,7 +143,6 @@ slice :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u
 slice (Parsec f) = Parsec $ \s l i0 p u -> case f s l i0 p u of
   Ok# p i u _a -> Ok# p i u (Chunk.convertSlice# @chunk (Chunk.Slice# (# s, i0, i -# i0 #)))
   x -> unsafeCoerceRes# x
-{-# INLINE slice #-}
 
 manySlice :: Chunk s => Parsec s u e a -> Parsec s u e (Chunk.ChunkSlice s)
 manySlice = slice . many_
@@ -166,7 +154,6 @@ lookahead (Parsec f) = Parsec $ \s l i p u ->
   case f s l i p u of
     Ok# _ _ _ a -> Ok# p i u a
     x -> x
-{-# INLINE lookahead #-}
 
 -- | Convert a parsing failure to a success.
 fails :: Parsec s u e a -> Parsec s u e ()
@@ -175,18 +162,15 @@ fails (Parsec f) = Parsec $ \s l i p u ->
     Ok# _ _ _ _ -> Fail#
     Fail# -> Ok# p i u ()
     Err# e -> Err# e
-{-# INLINE fails #-}
 
 -- | Succeed if the first parser succeeds and the second one fails.
 notFollowedBy :: Parsec s u e a -> Parsec s u e b -> Parsec s u e a
 notFollowedBy p1 p2 = p1 <* fails p2
-{-# INLINE notFollowedBy #-}
 
 -- | Throw a parsing error. By default, parser choice `(<|>)` can't backtrack
 --   on parser error. Use `try` to convert an error to a recoverable failure.
 err :: e -> Parsec s u e a
 err e = Parsec $ \_ _ _ _ _ -> Err# e
-{-# INLINE err #-}
 
 -- | An analogue of the list `foldl` function: first parse a @b@, then parse zero or more @a@-s,
 --   and combine the results in a left-nested way by the @b -> a -> b@ function. Note: this is not

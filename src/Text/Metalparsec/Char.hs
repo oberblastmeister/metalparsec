@@ -76,7 +76,6 @@ text (UnsafeText# bs# off# len#) = Parsec $ \s l i p u ->
         0# -> Ok# (p +# len#) (i +# len#) u ()
         _ -> Fail#
     _ -> Fail#
-{-# INLINE text #-}
 
 anyChar :: forall chunk u e. ByteChunk chunk => Parsec chunk u e Char
 anyChar = Parsec $ \s l i p u -> case i ==# l of
