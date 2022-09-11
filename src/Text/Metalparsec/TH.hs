@@ -14,12 +14,12 @@ import Language.Haskell.TH (Code)
 import Language.Haskell.TH (TExp)
 #endif
 
-import Text.Metalparsec.Chunk (ByteChunk)
-import Text.Metalparsec.Chunk qualified as Chunk
+import Text.Metalparsec.Internal.Chunk (ByteChunk)
+import Text.Metalparsec.Internal.Chunk qualified as Chunk
 import Text.Metalparsec.Combinators
 import Text.Metalparsec.Internal
-import Text.Metalparsec.Util
-import Text.Metalparsec.UnboxedNumerics
+import Text.Metalparsec.Internal.Util
+import Text.Metalparsec.Internal.UnboxedNumerics
 
 #if MIN_VERSION_base(4,15,0)
 type Up = Code Q

@@ -7,11 +7,13 @@ import Control.Applicative (Alternative (..), liftA2)
 import Control.DeepSeq (NFData (..))
 import Control.Monad (MonadPlus)
 import Control.Monad qualified as Monad
-import Data.Bifoldable
-import Data.Bifunctor
-import Data.Bitraversable
+import Control.Monad.Except (MonadError (..))
+import Control.Monad.State (MonadState (..))
+import Data.Bifoldable (Bifoldable (..))
+import Data.Bifunctor (Bifunctor (..))
+import Data.Bitraversable (Bitraversable (..), bisequenceA)
 import GHC.Exts
-import Text.Metalparsec.Chunk qualified as Chunk
+import Text.Metalparsec.Internal.Chunk qualified as Chunk
 
 newtype Parsec s u e a = Parsec
   { runParsec# ::
@@ -161,6 +163,18 @@ instance MonadPlus (Parsec s u e) where
   mplus = (<|>)
   {-# INLINE mplus #-}
 
+instance MonadState u (Parsec s u e) where
+  get = getState
+  put = putState
+  {-# INLINE get #-}
+  {-# INLINE put #-}
+
+instance MonadError e (Parsec s u e) where
+  throwError = err
+  catchError = tryWith
+  {-# INLINE throwError #-}
+  {-# INLINE catchError #-}
+
 -- | Higher-level boxed data type for parsing results.
 data Result e a
   = -- | Contains return value and unconsumed input.
@@ -234,8 +248,34 @@ setInt# :: Int# -> Parsec s u e ()
 setInt# p = Parsec $ \_s _l i _p u -> Ok# p i u ()
 {-# INLINE setInt# #-}
 
+getState :: Parsec s u e u
+getState = Parsec $ \_s _l i p u -> Ok# p i u u
+{-# INLINE getState #-}
+
+putState :: u -> Parsec s u e ()
+putState u = Parsec $ \_s _l i p _u -> Ok# p i u ()
+{-# INLINE putState #-}
+
 maybeResult :: Result e a -> Maybe a
 maybeResult = \case
   OK a -> Just a
   _ -> Nothing
 {-# INLINE maybeResult #-}
+
+-- | Throw a parsing error. By default, parser choice `(<|>)` can't backtrack
+--   on parser error. Use `try` to convert an error to a recoverable failure.
+err :: e -> Parsec s u e a
+err e = Parsec $ \_ _ _ _ _ -> Err# e
+{-# INLINE err #-}
+
+try :: Parsec s u e a -> Parsec s u e a
+try (Parsec f) = Parsec $ \s l i p u -> case f s l i p u of
+  Err# _ -> Fail#
+  x -> x
+{-# INLINE try #-}
+
+tryWith :: Parsec s u e a -> (e -> Parsec s u e a) -> Parsec s u e a
+tryWith (Parsec f) g = Parsec $ \s l i p u -> case f s l i p u of
+  Err# e -> runParsec# (g e) s l i p u
+  x -> x
+{-# INLINE tryWith #-}

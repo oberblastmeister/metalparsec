@@ -86,6 +86,7 @@ common common-options
     vector-stream,
     template-haskell,
     deepseq,
+    mtl,
   if impl(ghc < 9.2)
     build-depends:
       word-compat
@@ -101,15 +102,15 @@ library
     GHC.Exts.Compat.Internal
   exposed-modules:
     Text.Metalparsec
-    Text.Metalparsec.Util
-    Text.Metalparsec.Utf8
-    Text.Metalparsec.Chunk
-    Text.Metalparsec.Internal
-    Text.Metalparsec.Combinators
-    Text.Metalparsec.Char
-    Text.Metalparsec.TH
-    Text.Metalparsec.PureMutableByteArray
-    Text.Metalparsec.UnboxedNumerics
+      Text.Metalparsec.Internal
+        Text.Metalparsec.Internal.Util
+        Text.Metalparsec.Internal.Chunk
+        Text.Metalparsec.Internal.Utf8
+        Text.Metalparsec.Internal.PureMutableByteArray
+        Text.Metalparsec.Internal.UnboxedNumerics
+      Text.Metalparsec.Combinators
+      Text.Metalparsec.Char
+      Text.Metalparsec.TH
   ghc-options: -O2
   -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
   -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
