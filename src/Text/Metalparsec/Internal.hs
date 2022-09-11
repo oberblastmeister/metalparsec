@@ -229,40 +229,32 @@ withPos# f = Parsec $ \s l i p u -> runParsec# (f p) s l i p u
 
 getPos :: Parsec s u e Int
 getPos = Parsec $ \_s _l i p u -> Ok# p i u (I# p)
-{-# INLINE getPos #-}
 
 setInt# :: Int# -> Parsec s u e ()
 setInt# p = Parsec $ \_s _l i _p u -> Ok# p i u ()
-{-# INLINE setInt# #-}
 
 getState :: Parsec s u e u
 getState = Parsec $ \_s _l i p u -> Ok# p i u u
-{-# INLINE getState #-}
 
 putState :: u -> Parsec s u e ()
 putState u = Parsec $ \_s _l i p _u -> Ok# p i u ()
-{-# INLINE putState #-}
 
 maybeResult :: Result e a -> Maybe a
 maybeResult = \case
   OK a -> Just a
   _ -> Nothing
-{-# INLINE maybeResult #-}
 
 -- | Throw a parsing error. By default, parser choice `(<|>)` can't backtrack
 --   on parser error. Use `try` to convert an error to a recoverable failure.
 err :: e -> Parsec s u e a
 err e = Parsec $ \_ _ _ _ _ -> Err# e
-{-# INLINE err #-}
 
 try :: Parsec s u e a -> Parsec s u e a
 try (Parsec f) = Parsec $ \s l i p u -> case f s l i p u of
   Err# _ -> Fail#
   x -> x
-{-# INLINE try #-}
 
 tryWith :: Parsec s u e a -> (e -> Parsec s u e a) -> Parsec s u e a
 tryWith (Parsec f) g = Parsec $ \s l i p u -> case f s l i p u of
   Err# e -> runParsec# (g e) s l i p u
   x -> x
-{-# INLINE tryWith #-}
