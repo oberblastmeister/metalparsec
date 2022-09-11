@@ -1,3 +1,4 @@
+
 module Text.Metalparsec.Internal.Util
   ( charToWord8,
     pattern UnsafeText#,

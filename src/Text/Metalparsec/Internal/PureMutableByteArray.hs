@@ -8,6 +8,7 @@ module Text.Metalparsec.Internal.PureMutableByteArray
     fromByteString#,
     sliceByteString#,
     unsafeCompare#,
+    unsafeFind#,
   )
 where
 
@@ -24,6 +25,7 @@ import GHC.ForeignPtr (ForeignPtr (..), ForeignPtrContents (PlainPtr))
 import GHC.IO (IO (..))
 import GHC.IO.Unsafe (unsafeDupablePerformIO)
 import GHC.Word (Word8 (..))
+import Text.Metalparsec.Internal.C qualified as C
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
 
 newtype PureMutableByteArray# = UnsafePureMutableArray# (MutableByteArray# RealWorld)
@@ -62,17 +64,18 @@ sliceByteString# ((# (UnsafePureMutableArray# marr), off, len #)) =
 {-# INLINE sliceByteString# #-}
 
 unsafeCompare# :: ByteArray# -> Int# -> PureMutableByteArray# -> Int# -> Int# -> Int#
-unsafeCompare# arr i1 (UnsafePureMutableArray# marr) i2 l = case accursedUnutterablePerformIO $
-  c_metalparsec_memcmp_off
-    arr
-    (fromIntegral (I# i1))
-    marr
-    (fromIntegral (I# i2))
-    (fromIntegral (I# l)) of
-  (fromIntegral -> (I# i)) -> i
+unsafeCompare# arr i1 (UnsafePureMutableArray# marr) i2 l =
+  case accursedUnutterablePerformIO $
+    C.memcmp_off'
+      arr
+      (fromIntegral (I# i1))
+      marr
+      (fromIntegral (I# i2))
+      (fromIntegral (I# l)) of
+    (fromIntegral -> (I# i)) -> i
 {-# INLINE unsafeCompare# #-}
 
--- compareByteArrayMutableByteArray arr i1 marr i2 l s =
+-- unsafeCompare arr i1 marr i2 l s =
 --   go 0# s
 --   where
 --     go i s = case i ==# l of
@@ -83,7 +86,16 @@ unsafeCompare# arr i1 (UnsafePureMutableArray# marr) i2 l = case accursedUnutter
 --             (# s, b2 #) -> case b1 `eqWord8#` b2 of
 --               1# -> go (i +# 1#) s
 --               _ -> (# s, word2Int# (word8ToWord# (b1 `subWord8#` b2)) #)
--- {-# INLINE compareByteArrayMutableByteArray #-}
+-- {-# INLINE unsafeCompare #-}
 
-foreign import ccall unsafe "metalparsec_memcmp_off"
-  c_metalparsec_memcmp_off :: ByteArray# -> CSize -> MutableByteArray# s -> CSize -> CSize -> IO CInt
+unsafeFind# :: PureMutableByteArray# -> Int# -> Word8# -> Int#
+unsafeFind# (UnsafePureMutableArray# bs) o b =
+  case fromIntegral $
+    accursedUnutterablePerformIO $
+      C.memchr_off'
+        bs
+        (fromIntegral $ I# o)
+        (fromIntegral $ W8# b)
+        (fromIntegral $ I# (sizeofMutableByteArray# bs -# o)) of
+    I# i -> i
+{-# INLINE unsafeFind# #-}

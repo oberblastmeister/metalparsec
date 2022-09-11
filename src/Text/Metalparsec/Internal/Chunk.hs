@@ -1,11 +1,11 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE CPP #-}
 
 module Text.Metalparsec.Internal.Chunk where
 
 import Data.ByteString (ByteString)
-import Data.ByteString.Short.Internal (ShortByteString(..))
+import Data.ByteString.Short.Internal (ShortByteString (..))
 import Data.Kind (Type)
 import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Primitive.ByteArray qualified as ByteArray
@@ -13,6 +13,7 @@ import Data.Text (Text)
 import Data.Word (Word8)
 import GHC.Exts
 import GHC.TypeLits qualified as TypeLits
+import Text.Metalparsec.Internal.ByteArrayExt qualified as ByteArrayExt
 import Text.Metalparsec.Internal.PureMutableByteArray (PureMutableByteArray#)
 import Text.Metalparsec.Internal.PureMutableByteArray qualified as PureMutableByteArray
 import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
@@ -55,6 +56,7 @@ class IsArray# (a :: UnliftedType) x | a -> x where
 class IsArray# a Word8 => IsByteArray# (a :: UnliftedType) where
   unsafeIndexChar8# :: a -> Int# -> Char#
   unsafeCompare# :: ByteArray# -> Int# -> a -> Int# -> Int# -> Int#
+  unsafeFind# :: a -> Int# -> Word8# -> Int#
 
 class (IsArray# (BaseArray# s) (Token s), GetTokenTag (Token s)) => Chunk s where
   type Token s :: Type
@@ -75,18 +77,22 @@ instance IsArray# ByteArray# Word8 where
 instance IsByteArray# ByteArray# where
   unsafeIndexChar8# = indexCharArray#
   unsafeCompare# = compareByteArrays#
+  unsafeFind# = ByteArrayExt.unsafeFind#
   {-# INLINE unsafeCompare# #-}
   {-# INLINE unsafeIndexChar8# #-}
+  {-# INLINE unsafeFind# #-}
 
 instance IsArray# PureMutableByteArray# Word8 where
   unsafeIndex# = PureMutableByteArray.unsafeIndex#
   {-# INLINE unsafeIndex# #-}
 
 instance IsByteArray# PureMutableByteArray# where
-  unsafeIndexChar8# = PureMutableByteArray.unsafeIndexChar8# 
-  unsafeCompare# bs1 i1 bs2 i2 l = PureMutableByteArray.unsafeCompare# bs1 i1 bs2 i2 l
+  unsafeIndexChar8# = PureMutableByteArray.unsafeIndexChar8#
+  unsafeCompare# = PureMutableByteArray.unsafeCompare#
+  unsafeFind# = PureMutableByteArray.unsafeFind#
   {-# INLINE unsafeIndexChar8# #-}
   {-# INLINE unsafeCompare# #-}
+  {-# INLINE unsafeFind# #-}
 
 instance Chunk ByteArray where
   type Token ByteArray = Word8
