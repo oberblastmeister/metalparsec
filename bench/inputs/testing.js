@@ -1,1 +1,18 @@
-var test = 1
+// function fib(num) {
+//     var a = 1, b = 0, temp;
+//     var a = 1;
+//     while (num >= 0) {
+//         temp = a;
+//         a = a + b;
+//         b = temp;
+//         num = num - 1;
+//     }
+//     return b;
+//     // asdfasdf
+// }
+
+function fibonacci(num) {
+  if (num <= 1) return 1;
+
+  return fibonacci(num - 1) + fibonacci(num - 2);
+}

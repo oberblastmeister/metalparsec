@@ -11,3 +11,4 @@ mutableByteArrayContents# :: MutableByteArray# s -> Addr#
 mutableByteArrayContents# marr# = byteArrayContents# (unsafeCoerce# marr#)
 {-# INLINE mutableByteArrayContents# #-}
 #endif
+
