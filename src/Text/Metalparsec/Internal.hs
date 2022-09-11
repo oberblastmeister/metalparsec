@@ -218,9 +218,17 @@ instance (NFData e, NFData a) => NFData (Result e a) where
     Fail -> ()
     Err e -> rnf e
 
-withParsecOff# :: (Int# -> Parsec s u e a) -> Parsec s u e a
-withParsecOff# f = Parsec $ \s l i p u -> runParsec# (f i) s l i p u
-{-# INLINE withParsecOff# #-}
+withOff# :: (Int# -> Parsec s u e a) -> Parsec s u e a
+withOff# f = Parsec $ \s l i p u -> runParsec# (f i) s l i p u
+{-# INLINE withOff# #-}
+
+withPos# :: (Int# -> Parsec s u e a) -> Parsec s u e a
+withPos# f = Parsec $ \s l i p u -> runParsec# (f p) s l i p u
+{-# INLINE withPos# #-}
+
+getPos :: Parsec s u e Int
+getPos = Parsec $ \_s _l i p u -> Ok# p i u (I# p)
+{-# INLINE getPos #-}
 
 setInt# :: Int# -> Parsec s u e ()
 setInt# p = Parsec $ \_s _l i _p u -> Ok# p i u ()

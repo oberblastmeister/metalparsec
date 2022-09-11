@@ -142,7 +142,7 @@ fail = Parsec $ \_ _ _ _ _ -> Fail#
 {-# INLINE fail #-}
 
 takeWhileSuceeds :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-takeWhileSuceeds parser = withParsecOff# $ \i -> Parsec $ go i
+takeWhileSuceeds parser = withOff# $ \i -> Parsec $ go i
   where
     go i0 s l i p u = case runParsec# parser s l i p u of
       Fail# -> Ok# p i u (Chunk.convertSlice# @chunk (Chunk.Slice# (# s, i0, i -# i0 #)))
