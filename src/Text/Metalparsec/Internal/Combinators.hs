@@ -1,13 +1,13 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
-module Text.Metalparsec.Combinators where
+module Text.Metalparsec.Internal.Combinators where
 
 import Control.Applicative qualified as Applicative
 import GHC.Exts
 import GHC.Exts qualified as Exts
+import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (Chunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
-import Text.Metalparsec.Internal
 
 -- | Check that the input has at least the given number of bytes.
 ensureLen :: Int -> Parsec s u e ()

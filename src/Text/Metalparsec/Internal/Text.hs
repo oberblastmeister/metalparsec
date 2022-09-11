@@ -1,4 +1,4 @@
-module Text.Metalparsec.Char where
+module Text.Metalparsec.Internal.Text where
 
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -6,7 +6,7 @@ import GHC.Exts
 import GHC.Stack (HasCallStack)
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
-import Text.Metalparsec.Combinators
+import Text.Metalparsec.Internal.Combinators
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Utf8 qualified as Utf8
 import Text.Metalparsec.Internal.Util
@@ -55,7 +55,7 @@ asciiChar :: (HasCallStack, ByteChunk s) => Char -> Parsec s u e ()
 asciiChar c =
   if c < '\x7f'
     then unsafeAsciiChar c
-    else error "Text.Metalparsec.Char: not ascii char"
+    else error "Text.Metalparsec.Internal.Text: not ascii char"
 {-# INLINE asciiChar #-}
 
 unsafeAsciiChar :: ByteChunk s => Char -> Parsec s u e ()

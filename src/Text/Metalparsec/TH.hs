@@ -16,7 +16,7 @@ import Language.Haskell.TH (TExp)
 
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
-import Text.Metalparsec.Combinators
+import Text.Metalparsec.Internal.Combinators
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Util
 import Text.Metalparsec.Internal.UnboxedNumerics

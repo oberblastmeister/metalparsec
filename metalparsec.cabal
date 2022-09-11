@@ -108,8 +108,10 @@ library
         Text.Metalparsec.Internal.Utf8
         Text.Metalparsec.Internal.PureMutableByteArray
         Text.Metalparsec.Internal.UnboxedNumerics
-      Text.Metalparsec.Combinators
-      Text.Metalparsec.Char
+        Text.Metalparsec.Internal.Combinators
+        Text.Metalparsec.Internal.Text
+      Text.Metalparsec.Text
+        Text.Metalparsec.Text.Unsafe
       Text.Metalparsec.TH
   ghc-options: -O2
   -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
