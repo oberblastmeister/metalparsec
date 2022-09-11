@@ -153,13 +153,14 @@ prefixExpr =
       <|> operator "!" $> JSNot
 
 prefix :: Parser JSExpr' -> Parser JSUnaryOp -> Parser JSExpr'
-prefix = flip $ chainr JSUnary
+prefix = flip $ chainPre JSUnary
 
 postfix :: Parser JSExpr' -> Parser JSUnaryOp -> Parser JSExpr'
-postfix = chainl (flip JSUnary)
+postfix = chainPost (flip JSUnary)
 
 infixL :: Parser JSExpr' -> Parser JSBinOp -> Parser JSExpr'
-infixL p op = chainl (\e (op, e') -> JSBin e op e') p (do o <- op; e <- p; pure (o, e))
+infixL p op = chainl1 p $ do o <- op; pure $ \e e' -> JSBin e o e'
+{-# INLINE infixL #-}
 
 memOrCon :: Parser JSExpr'
 memOrCon =
@@ -240,7 +241,7 @@ naturalOrFloat = natFloat <* whitespace
 
 -- Nonsense to deal with floats and ints
 natFloat :: Parser (Either Int Double)
-natFloat = char '0' *> zeroNumFloat <|> decimalFloat
+natFloat = asciiChar '0' *> zeroNumFloat <|> decimalFloat
 
 zeroNumFloat :: Parser (Either Int Double)
 zeroNumFloat =
@@ -327,8 +328,8 @@ multiLineComment :: Parser ()
 multiLineComment =
   let inComment =
         void (token "*/")
-          <|> skipSome (satisfyChar (/= '*')) *> inComment
-          <|> char '*' *> inComment
+          <|> some_ (satisfyChar (/= '*')) *> inComment
+          <|> asciiChar '*' *> inComment
    in token "/*" *> inComment
 
 identStart = satisfyChar jsIdentStart

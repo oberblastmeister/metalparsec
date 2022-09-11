@@ -27,10 +27,6 @@ between o c p = o *> p <* c
 match :: (Monad m, Eq a) => [a] -> m a -> (a -> m b) -> m b -> m b
 match xs p f def = p >>= (\x -> if elem x xs then f x else def)
 
-skipSome :: Parser a -> Parser ()
-skipSome p = void (some p)
-
--- some = many1
 
 maybeP :: Parser a -> Parser (Maybe a)
 maybeP = optional

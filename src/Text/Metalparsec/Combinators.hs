@@ -3,9 +3,6 @@
 module Text.Metalparsec.Combinators where
 
 import Control.Applicative qualified as Applicative
--- import Control.Monad.ST (ST)
--- import Data.Primitive.PrimArray
--- import Data.Vector.Generic qualified as V
 import GHC.Exts
 import Text.Metalparsec.Chunk (Chunk)
 import Text.Metalparsec.Chunk qualified as Chunk
@@ -76,13 +73,6 @@ many_ (Parsec f) = Parsec go
 some_ :: Parsec s u e a -> Parsec s u e ()
 some_ pa = pa >> many_ pa
 {-# INLINE some_ #-}
-
--- manyVec :: V.Vector v a => Parsec s u e a -> Parsec s u e (v a)
--- manyVec (Parsec f) = Parsec $ \s l i p u -> do
---   let step (p, i, u) = case f s l i p u of
---               Ok# p i u a -> pure $ Yield a (p, i, u)
---               Fail# -> pure Done
---               Err# e ->
 
 -- | Choose between two Parsecs. If the first Parsec fails, try the second one, but if the first one
 --   throws an error, propagate the error.
@@ -175,21 +165,17 @@ err e = Parsec $ \_ _ _ _ _ -> Err# e
 -- | An analogue of the list `foldl` function: first parse a @b@, then parse zero or more @a@-s,
 --   and combine the results in a left-nested way by the @b -> a -> b@ function. Note: this is not
 --   the usual `chainl` function from the parsec libraries!
-chainl :: (b -> a -> b) -> Parsec s u e b -> Parsec s u e a -> Parsec s u e b
-chainl f start elem = start >>= go
+chainPost :: (b -> a -> b) -> Parsec s u e b -> Parsec s u e a -> Parsec s u e b
+chainPost f start elem = start >>= go
   where
     go b = do { !a <- elem; go $! f b a } <|> pure b
-{-# INLINE chainl #-}
-
-chainlSep :: Parsec s u e a -> (a -> a -> a) -> Parsec s u e b -> Parsec s u e a
-chainlSep elem f sep = chainl f elem $ sep *> elem
-{-# INLINE chainlSep #-}
+{-# INLINE chainPost #-}
 
 -- | An analogue of the list `foldr` function: parse zero or more @a@-s, terminated by a @b@, and
 --   combine the results in a right-nested way using the @a -> b -> b@ function. Note: this is not
 --   the usual `chainr` function from the parsec libraries!
-chainr :: (a -> b -> b) -> Parsec s u e a -> Parsec s u e b -> Parsec s u e b
-chainr f (Parsec elem) (Parsec end) = Parsec go
+chainPre :: (a -> b -> b) -> Parsec s u e a -> Parsec s u e b -> Parsec s u e b
+chainPre f (Parsec elem) (Parsec end) = Parsec go
   where
     go s l i p u = case elem s l i p u of
       Ok# p i u a -> case go s l i p u of
@@ -197,16 +183,34 @@ chainr f (Parsec elem) (Parsec end) = Parsec go
         x -> x
       Fail# -> end s l i p u
       Err# e -> Err# e
-{-# INLINE chainr #-}
-
-chainrSep :: Parsec s u e a -> (a -> a -> a) -> Parsec s u e b -> Parsec s u e a
-chainrSep elem f sep = chainr f elem $ sep *> elem
-{-# INLINE chainrSep #-}
-
-chainPre :: Parsec s u e a -> (a -> a) -> Parsec s u e b -> Parsec s u e a
-chainPre elem f pre = chainr (const f) pre elem
 {-# INLINE chainPre #-}
 
-chainPost :: Parsec s u e a -> (a -> a) -> Parsec s u e b -> Parsec s u e a
-chainPost elem f post = chainl (\b _ -> f b) elem post
-{-# INLINE chainPost #-}
+chainl1 :: Parsec s u e a -> Parsec s u e (a -> a -> a) -> Parsec s u e a
+chainl1 (Parsec elem) (Parsec sep) = Parsec $ \s l i p u -> case elem s l i p u of
+  Ok# p i u a -> go s l i p u a
+  x -> x
+  where
+    go s l i p u x = case sep s l i p u of
+      Ok# p i u f -> case elem s l i p u of
+        Ok# p i u y -> go s l i p u $! f x y
+        Fail# -> Ok# p i u x
+        Err# e -> Err# e
+      Fail# -> Ok# p i u x
+      Err# e -> Err# e
+{-# INLINE chainl1 #-}
+
+chainr1 :: Parsec s u e a -> Parsec s u e (a -> a -> a) -> Parsec s u e a
+chainr1 (Parsec elem) (Parsec sep) = Parsec start
+  where
+    start s l i p u = case elem s l i p u of
+      Ok# p i u x -> go s l i p u x
+      x -> x
+
+    go s l i p u x = case sep s l i p u of
+      Ok# p i u f -> case start s l i p u of
+        Ok# p i u y -> let !b' = f x y in Ok# p i u b'
+        Fail# -> Ok# p i u x
+        Err# e -> Err# e
+      Fail# -> Ok# p i u x
+      Err# e -> Err# e
+{-# INLINE chainr1 #-}
