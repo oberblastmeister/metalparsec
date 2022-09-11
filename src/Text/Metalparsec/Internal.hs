@@ -69,32 +69,27 @@ instance Functor (Parsec s u e) where
   fmap f (Parsec g) = Parsec $ \s l i p u -> case g s l i p u of
     Ok# p i u a -> let !b = f a in Ok# p i u b
     x -> unsafeCoerceRes# x
-  {-# INLINE fmap #-}
 
 instance Applicative (Parsec s u e) where
   pure a = Parsec $ \_s _l i p u -> Ok# p i u a
-  {-# INLINE pure #-}
 
   Parsec ff <*> Parsec fa = Parsec $ \s l i p u -> case ff s l i p u of
     Ok# p i u f -> case fa s l i p u of
       Ok# p i u a -> let !b = f a in Ok# p i u b
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
-  {-# INLINE (<*>) #-}
 
   Parsec fa <* Parsec fb = Parsec $ \s l i p u -> case fa s l i p u of
     Ok# p i u a -> case fb s l i p u of
       Ok# p i u _ -> Ok# p i u a
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
-  {-# INLINE (<*) #-}
 
   Parsec fa *> Parsec fb = Parsec $ \s l i p u -> case fa s l i p u of
     Ok# p i u _ -> case fb s l i p u of
       Ok# p i u b -> Ok# p i u b
       x -> unsafeCoerceRes# x
     x -> unsafeCoerceRes# x
-  {-# INLINE (*>) #-}
 
 instance Monad (Parsec s u e) where
   return = pure
@@ -103,7 +98,6 @@ instance Monad (Parsec s u e) where
   Parsec fa >>= f = Parsec $ \s l i p u -> case fa s l i p u of
     Ok# p i u a -> runParsec# (f a) s l i p u
     x -> unsafeCoerce# x
-  {-# INLINE (>>=) #-}
 
   (>>) = (*>)
   {-# INLINE (>>) #-}
@@ -113,7 +107,6 @@ instance Bifunctor (Parsec s u) where
     Ok# p i u a -> Ok# p i u (g a)
     Fail# -> Fail#
     Err# e -> Err# (f e)
-  {-# INLINE bimap #-}
 
 instance Semigroup a => Semigroup (Parsec s u e a) where
   (<>) = liftA2 (<>)
@@ -121,18 +114,15 @@ instance Semigroup a => Semigroup (Parsec s u e a) where
 
 instance Monoid a => Monoid (Parsec s u e a) where
   mempty = pure mempty
-  {-# INLINE mempty #-}
 
 instance Alternative (Parsec s u e) where
   empty = Parsec $ \_ _ _ _ _ -> Fail#
-  {-# INLINE empty #-}
 
   -- \| Don't use this! @<|>@ is left associative, which is slower.
   Parsec f <|> Parsec g = Parsec $ \s l i p u ->
     case f s l i p u of
       Fail# -> g s l i p u
       x -> x
-  {-# INLINE (<|>) #-}
 
   -- \| Run a Parsec zero more times, collect the results in a list. Note: for optimal performance,
   --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
@@ -143,7 +133,6 @@ instance Alternative (Parsec s u e) where
         Ok# p i u x -> go (x : xs) s l i p u
         Fail# -> Ok# p i u $ reverse xs
         Err# e -> Err# e
-  {-# INLINE many #-}
 
   -- \| Run a Parsec one more times, collect the results in a list. Note: for optimal performance,
   --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
@@ -155,7 +144,6 @@ instance Alternative (Parsec s u e) where
         Ok# p i u x -> go (x : xs) s l i p u
         Fail# -> Ok# p i u $! reverse xs
         Err# e -> Err# e
-  {-# INLINE some #-}
 
 instance MonadPlus (Parsec s u e) where
   mzero = empty
@@ -189,7 +177,6 @@ instance Functor (Result e) where
   fmap f (OK x) = OK (f x)
   fmap _f Fail = Fail
   fmap _f (Err e) = (Err e)
-  {-# INLINE fmap #-}
 
 instance Applicative (Result e) where
   pure = OK
