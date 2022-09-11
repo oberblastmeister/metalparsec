@@ -1,4 +1,4 @@
-module Text.Metalparsec.Utf8
+module Text.Metalparsec.Internal.Utf8
   ( lengthByLeader,
     char2#,
     char3#,

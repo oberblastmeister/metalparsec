@@ -3,13 +3,10 @@
 module Text.Metalparsec.Combinators where
 
 import Control.Applicative qualified as Applicative
--- import Control.Monad.ST (ST)
--- import Data.Primitive.PrimArray
--- import Data.Vector.Generic qualified as V
 import GHC.Exts
 import GHC.Exts qualified as Exts
-import Text.Metalparsec.Chunk (Chunk)
-import Text.Metalparsec.Chunk qualified as Chunk
+import Text.Metalparsec.Internal.Chunk (Chunk)
+import Text.Metalparsec.Internal.Chunk qualified as Chunk
 import Text.Metalparsec.Internal
 
 -- | Check that the input has at least the given number of bytes.
@@ -61,12 +58,6 @@ withOption (Parsec f) just (Parsec nothing) = Parsec $ \s l i p u -> case f s l 
   Err# e -> Err# e
 {-# INLINE withOption #-}
 
-try :: Parsec s u e a -> Parsec s u e a
-try (Parsec f) = Parsec $ \s l i p u -> case f s l i p u of
-  Err# _ -> Fail#
-  x -> x
-{-# INLINE try #-}
-
 -- | Skip a Parsec zero more times.
 many_ :: Parsec s u e a -> Parsec s u e ()
 many_ (Parsec f) = Parsec go
@@ -81,13 +72,6 @@ many_ (Parsec f) = Parsec go
 some_ :: Parsec s u e a -> Parsec s u e ()
 some_ pa = pa >> many_ pa
 {-# INLINE some_ #-}
-
--- manyVec :: V.Vector v a => Parsec s u e a -> Parsec s u e (v a)
--- manyVec (Parsec f) = Parsec $ \s l i p u -> do
---   let step (p, i, u) = case f s l i p u of
---               Ok# p i u a -> pure $ Yield a (p, i, u)
---               Fail# -> pure Done
---               Err# e ->
 
 -- | Choose between two Parsecs. If the first Parsec fails, try the second one, but if the first one
 --   throws an error, propagate the error.
@@ -181,9 +165,3 @@ fails (Parsec f) = Parsec $ \s l i p u ->
 notFollowedBy :: Parsec s u e a -> Parsec s u e b -> Parsec s u e a
 notFollowedBy p1 p2 = p1 <* fails p2
 {-# INLINE notFollowedBy #-}
-
--- | Throw a parsing error. By default, parser choice `(<|>)` can't backtrack
---   on parser error. Use `try` to convert an error to a recoverable failure.
-err :: e -> Parsec s u e a
-err e = Parsec $ \_ _ _ _ _ -> Err# e
-{-# INLINE err #-}

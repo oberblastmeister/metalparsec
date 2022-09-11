@@ -2,7 +2,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE CPP #-}
 
-module Text.Metalparsec.Chunk where
+module Text.Metalparsec.Internal.Chunk where
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Short.Internal (ShortByteString(..))
@@ -13,9 +13,9 @@ import Data.Text (Text)
 import Data.Word (Word8)
 import GHC.Exts
 import GHC.TypeLits qualified as TypeLits
-import Text.Metalparsec.PureMutableByteArray (PureMutableByteArray#)
-import Text.Metalparsec.PureMutableByteArray qualified as PureMutableByteArray
-import Text.Metalparsec.Util (pattern UnsafeText#)
+import Text.Metalparsec.Internal.PureMutableByteArray (PureMutableByteArray#)
+import Text.Metalparsec.Internal.PureMutableByteArray qualified as PureMutableByteArray
+import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
 
 #if !MIN_VERSION_base(4,16,0)
 type UnliftedType = TYPE 'UnliftedRep

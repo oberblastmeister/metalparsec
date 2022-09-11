@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE UnliftedFFITypes #-}
 
-module Text.Metalparsec.PureMutableByteArray
+module Text.Metalparsec.Internal.PureMutableByteArray
   ( PureMutableByteArray#,
     unsafeIndex#,
     unsafeIndexChar8#,
@@ -24,7 +24,7 @@ import GHC.ForeignPtr (ForeignPtr (..), ForeignPtrContents (PlainPtr))
 import GHC.IO (IO (..))
 import GHC.IO.Unsafe (unsafeDupablePerformIO)
 import GHC.Word (Word8 (..))
-import Text.Metalparsec.Util (accursedUnutterablePerformIO)
+import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
 
 newtype PureMutableByteArray# = UnsafePureMutableArray# (MutableByteArray# RealWorld)
 

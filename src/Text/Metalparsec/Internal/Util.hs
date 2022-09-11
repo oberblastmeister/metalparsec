@@ -1,4 +1,4 @@
-module Text.Metalparsec.Util where
+module Text.Metalparsec.Internal.Util where
 
 import Compat.Word
 import Data.ByteString qualified as B
