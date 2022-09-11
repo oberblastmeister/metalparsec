@@ -110,6 +110,7 @@ library
         Text.Metalparsec.Internal.UnboxedNumerics
         Text.Metalparsec.Internal.Combinators
         Text.Metalparsec.Internal.Text
+      Text.Metalparsec.Token
       Text.Metalparsec.Text
         Text.Metalparsec.Text.Unsafe
       Text.Metalparsec.TH

@@ -1,6 +1,40 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
-module Text.Metalparsec.Internal.Combinators where
+module Text.Metalparsec.Internal.Combinators
+  ( ensureLen,
+    unsafeTake1,
+    take1,
+    cut,
+    optional,
+    optional_,
+    withOption,
+    many_,
+    some_,
+    (<|>),
+    branch,
+    eof,
+    runParserWithAll,
+    runParser,
+    evalParser,
+    fail,
+    takeWhileSuceeds,
+    slice,
+    manySlice,
+    lookahead,
+    fails,
+    notFollowedBy,
+    -- * @from Text.Metalparsec.Internal@
+    err,
+    try,
+    tryWith,
+    withOff#,
+    withPos#,
+    getPos,
+    setInt#,
+    getState,
+    putState,
+  )
+where
 
 import Control.Applicative qualified as Applicative
 import GHC.Exts
@@ -8,6 +42,7 @@ import GHC.Exts qualified as Exts
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (Chunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
+import Prelude hiding (fail)
 
 -- | Check that the input has at least the given number of bytes.
 ensureLen :: Int -> Parsec s u e ()

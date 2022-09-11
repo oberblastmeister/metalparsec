@@ -22,7 +22,23 @@ The general pattern is as follows:
 
 Also see: https://gitlab.haskell.org/ghc/ghc/-/wikis/Unboxed-Numerics
 -}
-module Text.Metalparsec.Internal.UnboxedNumerics where
+module Text.Metalparsec.Internal.UnboxedNumerics
+  ( byteSwap16##,
+    byteSwap32##,
+    eqWord8##,
+    eqWord16##,
+    eqWord32##,
+    indexWord8OffAddr###,
+    wordToWord8###,
+    word8ToWord###,
+    Word8##,
+    Word16##,
+    Word32##,
+    Int8##,
+    Int16##,
+    Int32##,
+  )
+where
 
 import GHC.Exts
 
