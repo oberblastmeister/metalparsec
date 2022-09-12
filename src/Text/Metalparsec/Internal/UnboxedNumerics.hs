@@ -64,6 +64,7 @@ pattern W8### :: Word8# -> Word8
 {-# inline indexWord8OffAddr###  #-}
 {-# inline wordToWord8### #-}
 {-# inline word8ToWord### #-}
+{-# complete W8### #-}
 
 #if MIN_VERSION_base(4,16,0)
 -- GHC >=9.2
