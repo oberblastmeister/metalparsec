@@ -8,6 +8,8 @@ import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
 import Text.Metalparsec.Internal.Combinators
+import Text.Metalparsec.Internal.Compat.Word
+import Text.Metalparsec.Internal.UnboxedNumerics
 import Text.Metalparsec.Internal.Utf8 qualified as Utf8
 import Text.Metalparsec.Internal.Util
 
@@ -139,3 +141,12 @@ isAsciiLetter c = ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
 isAsciiDigit :: Char -> Bool
 isAsciiDigit c = '0' <= c && c <= '9'
 {-# INLINE isAsciiDigit #-}
+
+-- | Does not check if eof has been hit
+-- This can also result in invalid utf8.
+unsafeByte :: ByteChunk s => Word8 -> Parsec s u e ()
+unsafeByte (W8# w) = Parsec $ \s _l i p u -> case Chunk.unsafeIndex# s i of
+  (W8# w') -> case w `eqWord8##` w' of
+    1# -> Ok# (p +# 1#) (i +# 1#) u ()
+    _ -> Fail#
+{-# INLINE unsafeByte #-}

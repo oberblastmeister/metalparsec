@@ -1,6 +1,7 @@
 module Text.Metalparsec.Text.Unsafe
   ( unsafeSatisfyAscii,
     unsafeAsciiChar,
+    unsafeByte,
   )
 where
 

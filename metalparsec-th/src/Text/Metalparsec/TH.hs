@@ -4,7 +4,6 @@
 
 module Text.Metalparsec.TH where
 
-import Text.Metalparsec.Internal.Compat.Word
 import Data.Text qualified as T
 import GHC.Exts
 import Language.Haskell.TH (Exp, ExpQ, Q)
@@ -14,12 +13,11 @@ import Language.Haskell.TH (Code)
 import Language.Haskell.TH (TExp)
 #endif
 
-import Text.Metalparsec.Internal
+import Data.Word (Word8)
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
-import Text.Metalparsec.Internal.Chunk qualified as Chunk
-import Text.Metalparsec.Internal.Combinators qualified as Combinators
-import Text.Metalparsec.Internal.UnboxedNumerics (eqWord8##)
+import Text.Metalparsec (ByteChunk, Parsec, ensureLen)
 import Text.Metalparsec.Internal.Utf8 qualified as Utf8
+import Text.Metalparsec.Text.Unsafe qualified as Text.Unsafe
 
 #if MIN_VERSION_base(4,15,0)
 type Up = Code Q
@@ -40,7 +38,7 @@ char' :: Char -> ExpQ
 char' = bytes' . Utf8.charBytes
 
 bytes :: ByteChunk s => [Word8] -> Up (Parsec s u e ())
-bytes bs = let len = length bs in [||Combinators.ensureLen len *> $$(unsafeBytes bs)||]
+bytes bs = let len = length bs in [||ensureLen len *> $$(unsafeBytes bs)||]
 
 bytes' :: [Word8] -> ExpQ
 bytes' bs = let len = length bs in [|ensureLen len *> $(unsafeBytes' bs)|]
@@ -48,20 +46,14 @@ bytes' bs = let len = length bs in [|ensureLen len *> $(unsafeBytes' bs)|]
 unsafeBytes :: forall s u e. (ByteChunk s) => [Word8] -> Up (Parsec s u e ())
 unsafeBytes = go
   where
-    go (b : bs) = [||unsafeByte b *> $$(go bs)||]
+    go (b : bs) = [||Text.Unsafe.unsafeByte b *> $$(go bs)||]
     go [] = [||pure ()||]
 
 unsafeBytes' :: [Word8] -> ExpQ
 unsafeBytes' = go
   where
-    go (b : bs) = [|unsafeByte b *> $(go bs)|]
+    go (b : bs) = [|Text.Unsafe.unsafeByte b *> $(go bs)|]
     go [] = [|pure ()|]
-
-unsafeByte :: ByteChunk s => Word8 -> Parsec s u e ()
-unsafeByte (W8# w) = Parsec $ \s _l i p u -> case Chunk.unsafeIndex# s i of
-  (W8# w') -> case w `eqWord8##` w' of
-    1# -> Ok# (p +# 1#) (i +# 1#) u ()
-    _ -> Fail#
 
 -- [||
 -- case $$(unsafeScanListUnchecked @Word8 bs) of
