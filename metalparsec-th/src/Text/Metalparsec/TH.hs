@@ -4,7 +4,7 @@
 
 module Text.Metalparsec.TH where
 
-import Compat.Word
+import Text.Metalparsec.Internal.Compat.Word
 import Data.Text qualified as T
 import GHC.Exts
 import Language.Haskell.TH (Exp, ExpQ, Q)

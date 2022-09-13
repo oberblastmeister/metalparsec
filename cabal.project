@@ -1,5 +1,7 @@
 packages:
-    ./
+    metalparsec-core/*.cabal
+    metalparsec/*.cabal
+    metalparsec-th/*.cabal
 
 
 tests: True

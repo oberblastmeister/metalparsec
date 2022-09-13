@@ -1,5 +1,5 @@
 cabal-version:      3.6
-name:               metalparsec
+name:               metalparsec-th
 version:            0.1.0.0
 synopsis: Fast parser combinators
 description:
@@ -79,14 +79,9 @@ common common-options
       -Wno-ambiguous-fields
   build-depends:
     base >= 4.12 && <5,
-    primitive,
     text >= 2.0,
-    bytestring,
-    vector,
-    vector-stream,
     template-haskell,
-    deepseq,
-    mtl,
+    metalparsec-core,
   if impl(ghc < 9.2)
     build-depends:
       word-compat
@@ -94,28 +89,8 @@ common common-options
 library
   import: common-options
   hs-source-dirs: src
-  c-sources: cbits/metalparsec.c
-  other-modules:
-    Compat.Int
-    Compat.Word
-    GHC.Exts.Compat
-    GHC.Exts.Compat.Internal
   exposed-modules:
-    Text.Metalparsec
-      Text.Metalparsec.Internal
-        Text.Metalparsec.Internal.Util
-        Text.Metalparsec.Internal.Chunk
-        Text.Metalparsec.Internal.Utf8
-        Text.Metalparsec.Internal.PureMutableByteArray
-        Text.Metalparsec.Internal.ByteArrayExt
-        Text.Metalparsec.Internal.UnboxedNumerics
-        Text.Metalparsec.Internal.Combinators
-        Text.Metalparsec.Internal.Text
-        Text.Metalparsec.Internal.C
-      Text.Metalparsec.Token
-      Text.Metalparsec.Text
-        Text.Metalparsec.Text.Unsafe
-      Text.Metalparsec.TH
+    Text.Metalparsec.TH
   ghc-options: -O2
   -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
   -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
@@ -127,62 +102,62 @@ common rtsopts
     -rtsopts
     -with-rtsopts=-N
 
-test-suite test
-  import: common-options, rtsopts
-  type: exitcode-stdio-1.0
-  hs-source-dirs: test
-  main-is: Main.hs
-  other-modules:
-    Sexp
-  build-depends:
-    metalparsec,
-    tasty,
-    tasty-hunit,
-    -- QuickCheck
-    -- quickcheck-instances
+-- test-suite test
+--   import: common-options, rtsopts
+--   type: exitcode-stdio-1.0
+--   hs-source-dirs: test
+--   main-is: Main.hs
+--   other-modules:
+--     Sexp
+--   build-depends:
+--     metalparsec,
+--     tasty,
+--     tasty-hunit,
+--     -- QuickCheck
+--     -- quickcheck-instances
 
-benchmark bench
-  import: common-options, rtsopts
-  type: exitcode-stdio-1.0
-  hs-source-dirs: bench
-  main-is: Main.hs
-  default-extensions:
-    BlockArguments
-    TemplateHaskell
-  other-modules:
-    Util
-    Simple
-      Simple.Attoparsec
-      Simple.FPBasic
-      Simple.FPStateful
-      Simple.Megaparsec
-      Simple.MetalparsecTH
-      Simple.Metalparsec
-    Expr
-      Expr.Metalparsec
-      Expr.Common
-    Json.Metalparsec
-    Json.Attoparsec
-    Json.Common
-    Javascript
-      Javascript.Common
-      -- Javascript.Attoparsec
-      -- Javascript.Attoparsec.Extended
-      Javascript.Metalparsec
-      Javascript.Metalparsec.Extended
-      -- Javascript.MetalparsecTH
-  build-depends:
-    metalparsec,
-    attoparsec,
-    megaparsec,
-    flatparse,
-    gauge,
-    containers,
-    unordered-containers,
-    vector,
-    scientific,
-    deepseq,
-    parser-combinators,
-  ghc-options:
-    -Wno-incomplete-patterns
-    -O2
+-- benchmark bench
+--   import: common-options, rtsopts
+--   type: exitcode-stdio-1.0
+--   hs-source-dirs: bench
+--   main-is: Main.hs
+--   default-extensions:
+--     BlockArguments
+--     TemplateHaskell
+--   other-modules:
+--     Util
+--     Simple
+--       Simple.Attoparsec
+--       Simple.FPBasic
+--       Simple.FPStateful
+--       Simple.Megaparsec
+--       Simple.MetalparsecTH
+--       Simple.Metalparsec
+--     Expr
+--       Expr.Metalparsec
+--       Expr.Common
+--     Json.Metalparsec
+--     Json.Attoparsec
+--     Json.Common
+--     Javascript
+--       Javascript.Common
+--       -- Javascript.Attoparsec
+--       -- Javascript.Attoparsec.Extended
+--       Javascript.Metalparsec
+--       Javascript.Metalparsec.Extended
+--       -- Javascript.MetalparsecTH
+--   build-depends:
+--     metalparsec,
+--     attoparsec,
+--     megaparsec,
+--     flatparse,
+--     gauge,
+--     containers,
+--     unordered-containers,
+--     vector,
+--     scientific,
+--     deepseq,
+--     parser-combinators,
+--   ghc-options:
+--     -Wno-incomplete-patterns
+--     -O2

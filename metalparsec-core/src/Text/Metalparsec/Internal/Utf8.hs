@@ -8,7 +8,7 @@ module Text.Metalparsec.Internal.Utf8
   )
 where
 
-import Compat.Word
+import Text.Metalparsec.Internal.Compat.Word
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T

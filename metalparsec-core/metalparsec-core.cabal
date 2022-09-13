@@ -1,0 +1,141 @@
+cabal-version:      3.6
+name:               metalparsec-core
+version:            0.1.0.0
+synopsis: Fast parser combinators
+description:
+  Fast parser combinators with unboxed internals.
+  Generic on Text, ByteString, or any custom array of tokens.
+  8-10x faster than attoparsec and metalparsec.
+homepage: https://github.com/oberblastmeister/metalparsec
+bug-reports: https://github.com/oberblastmeister/metalparsec/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Brian Shu
+maintainer: littlebubu.shu@gmail.com
+copyright: 2022 Brian Shu
+category: Parsing
+extra-source-files: CHANGELOG.md
+tested-with: GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.4, GHC == 9.4.2
+
+common common-options
+  default-extensions:
+    FlexibleInstances,
+    FlexibleContexts,
+    InstanceSigs,
+    MultiParamTypeClasses,
+    ConstraintKinds,
+    LambdaCase,
+    EmptyCase,
+    TupleSections,
+    BangPatterns,
+    TypeApplications,
+    StandaloneDeriving,
+    OverloadedStrings,
+    RankNTypes,
+    ScopedTypeVariables,
+    NamedFieldPuns,
+    DuplicateRecordFields,
+    GeneralizedNewtypeDeriving,
+    DataKinds,
+    ConstraintKinds,
+    TypeApplications,
+    KindSignatures,
+    StandaloneKindSignatures,
+    DeriveFoldable,
+    DeriveFunctor,
+    DeriveGeneric,
+    DeriveDataTypeable,
+    DeriveLift,
+    DeriveTraversable,
+    GeneralizedNewtypeDeriving,
+    GADTs,
+    PolyKinds,
+    ViewPatterns,
+    PatternSynonyms,
+    TypeFamilies,
+    TypeFamilyDependencies,
+    FunctionalDependencies,
+    ExistentialQuantification,
+    TypeOperators,
+    OverloadedLabels,
+    ImportQualifiedPost,
+    ImpredicativeTypes,
+    MagicHash,
+    UnboxedTuples,
+    UnliftedNewtypes,
+    RoleAnnotations,
+  ghc-options:
+    -Wall
+    -Wincomplete-record-updates
+    -Wredundant-constraints
+    -Wno-name-shadowing
+    -Wno-unticked-promoted-constructors
+    -- until OverloadedRecordUpdate stabilizes
+    -Werror=incomplete-patterns
+    -Werror=incomplete-uni-patterns
+    -Werror=missing-methods
+  if impl(ghc >= 9.2)
+    ghc-options:
+      -Wno-ambiguous-fields
+  build-depends:
+    base >= 4.12 && <5,
+    primitive,
+    text >= 2.0,
+    bytestring,
+    vector,
+    vector-stream,
+    template-haskell,
+    deepseq,
+    mtl,
+  if impl(ghc < 9.2)
+    build-depends:
+      word-compat
+
+library
+  import: common-options
+  hs-source-dirs: src
+  c-sources: cbits/metalparsec.c
+  other-modules:
+    -- Compat.Int
+    GHC.Exts.Compat
+    GHC.Exts.Compat.Internal
+  exposed-modules:
+    Text.Metalparsec
+      Text.Metalparsec.Internal
+        Text.Metalparsec.Internal.Util
+        Text.Metalparsec.Internal.Compat.Word
+        Text.Metalparsec.Internal.Chunk
+        Text.Metalparsec.Internal.Utf8
+        Text.Metalparsec.Internal.PureMutableByteArray
+        Text.Metalparsec.Internal.ByteArrayExt
+        Text.Metalparsec.Internal.UnboxedNumerics
+        Text.Metalparsec.Internal.Combinators
+        Text.Metalparsec.Internal.Text
+        Text.Metalparsec.Internal.C
+      Text.Metalparsec.Token
+      Text.Metalparsec.Text
+        Text.Metalparsec.Text.Unsafe
+  ghc-options: -O2
+  -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
+  -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
+  -- ghc-options: -dsuppress-uniques -dsuppress-timestamps
+
+common rtsopts
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+test-suite test
+  import: common-options, rtsopts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules:
+    Sexp
+  build-depends:
+    metalparsec-core,
+    tasty,
+    tasty-hunit,
+    -- QuickCheck
+    -- quickcheck-instances

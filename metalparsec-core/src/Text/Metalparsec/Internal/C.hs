@@ -3,7 +3,7 @@
 
 module Text.Metalparsec.Internal.C where
 
-import Compat.Word
+import Text.Metalparsec.Internal.Compat.Word
 import Foreign.C.Types (CInt (..), CSize (..))
 import GHC.Exts
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
