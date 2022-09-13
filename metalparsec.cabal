@@ -150,6 +150,7 @@ benchmark bench
     BlockArguments
     TemplateHaskell
   other-modules:
+    Util
     Simple
       Simple.Attoparsec
       Simple.FPBasic
@@ -157,6 +158,9 @@ benchmark bench
       Simple.Megaparsec
       Simple.MetalparsecTH
       Simple.Metalparsec
+    Expr
+      Expr.Metalparsec
+      Expr.Common
     Json.Metalparsec
     Json.Attoparsec
     Json.Common

@@ -4,3 +4,4 @@ packages:
 
 tests: True
 benchmarks: True
+test-show-details: direct

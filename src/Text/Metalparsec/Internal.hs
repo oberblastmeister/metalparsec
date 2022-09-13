@@ -101,7 +101,7 @@ instance Monad (Parsec s u e) where
 
   (>>) = (*>)
   {-# INLINE (>>) #-}
-
+  
 instance Bifunctor (Parsec s u) where
   bimap f g (Parsec m) = Parsec $ \s l i p u -> case m s l i p u of
     Ok# p i u a -> Ok# p i u (g a)

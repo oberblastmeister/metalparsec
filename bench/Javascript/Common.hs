@@ -142,17 +142,17 @@ data JSMember
   deriving (Show)
 
 data JSCons
-  = JSQual Text JSCons
-  | JSConCall Text JSExpr
+  = JSQual !Text JSCons
+  | JSConCall !Text JSExpr
   deriving (Show)
 
 data JSAtom
   = JSParens JSExpr
   | JSArray JSExpr
-  | JSId Text
-  | JSInt Int
-  | JSFloat Double
-  | JSString Text
+  | JSId !Text
+  | JSInt !Int
+  | JSFloat !Double
+  | JSString !Text
   | JSTrue
   | JSFalse
   | JSNull

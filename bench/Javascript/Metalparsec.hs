@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
-module Javascript.Metalparsec where
+module Javascript.Metalparsec (javascript) where
 
 import Control.Applicative (liftA2, liftA3, (<**>))
 import Control.Monad.Combinators (option, sepBy, sepBy1)

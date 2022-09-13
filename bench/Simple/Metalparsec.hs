@@ -1,13 +1,3 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE MagicHash #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE UnboxedSums #-}
-{-# LANGUAGE UnboxedTuples #-}
-
 module Simple.Metalparsec
   ( runSexp,
     runLongws,
