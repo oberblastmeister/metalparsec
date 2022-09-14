@@ -18,6 +18,7 @@ import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import Text.Metalparsec (ByteChunk, Parsec, ensureLen)
 import Text.Metalparsec.Internal.Utf8 qualified as Utf8
 import Text.Metalparsec.Text.Unsafe qualified as Text.Unsafe
+import GHC.Base (unsafeChr)
 
 #if MIN_VERSION_base(4,15,0)
 type Up = Code Q
@@ -25,32 +26,35 @@ type Up = Code Q
 type Up a = Q (TExp a)
 #endif
 
-string :: ByteChunk s => String -> Up (Parsec s u e ())
+string :: ByteChunk c => String -> Up (Parsec c e s ())
 string = bytes . Utf8.textBytes . T.pack
 
 string' :: String -> Q Exp
 string' = bytes' . Utf8.textBytes . T.pack
 
-char :: forall s u e. (ByteChunk s) => Char -> Up (Parsec s u e ())
+char :: (ByteChunk c) => Char -> Up (Parsec c e s ())
 char = bytes . Utf8.charBytes
 
 char' :: Char -> ExpQ
 char' = bytes' . Utf8.charBytes
 
-bytes :: ByteChunk s => [Word8] -> Up (Parsec s u e ())
+bytes :: ByteChunk c => [Word8] -> Up (Parsec c e s ())
 bytes bs = let len = length bs in [||ensureLen len *> $$(unsafeBytes bs)||]
 
 bytes' :: [Word8] -> ExpQ
 bytes' bs = let len = length bs in [|ensureLen len *> $(unsafeBytes' bs)|]
 
-unsafeBytes :: forall s u e. (ByteChunk s) => [Word8] -> Up (Parsec s u e ())
+unsafeBytes ::  (ByteChunk c) => [Word8] -> Up (Parsec c e s ())
 unsafeBytes = go
   where
-    go (b : bs) = [||Text.Unsafe.unsafeByte b *> $$(go bs)||]
+    go (b : bs) = [||Text.Unsafe.unsafeByte (char8 b) *> $$(go bs)||]
     go [] = [||pure ()||]
 
 unsafeBytes' :: [Word8] -> ExpQ
 unsafeBytes' = go
   where
-    go (b : bs) = [|Text.Unsafe.unsafeByte b *> $(go bs)|]
+    go (b : bs) = [|Text.Unsafe.unsafeByte (char8 b) *> $(go bs)|]
     go [] = [|pure ()|]
+
+char8 :: Word8 -> Char
+char8 = unsafeChr . fromIntegral

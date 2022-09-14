@@ -6,7 +6,7 @@ import Data.Text qualified as T
 import Text.Metalparsec (Parsec)
 import Text.Metalparsec qualified as P
 
--- scientifically :: (Scientific -> a) -> Parsec s u e a
+-- scientifically :: (Scientific -> a) -> Parsec c e s a
 -- scientifically h = do
 --   !positive <-
 --     ((== '+') <$> P.satisfyAscii (\c -> c == '-' || c == '+'))
