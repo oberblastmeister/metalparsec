@@ -4,7 +4,7 @@
 
 module Text.Metalparsec.Internal where
 
-import Control.Applicative (Alternative (..), liftA2)
+import Control.Applicative (Alternative (..))
 import Control.DeepSeq (NFData (..))
 import Control.Monad (MonadPlus)
 import Control.Monad qualified as Monad
@@ -276,18 +276,15 @@ err e = Parsec $ \_ _ s -> STR# s (Err# e)
 
 try :: Parsec c e s a -> Parsec c e s a
 try (Parsec f) = Parsec $ \e ix s -> case f e ix s of
-  STR# s r ->
-    STR#
-      s
-      ( case r of
-          Err# _ -> Fail#
-          x -> x
-      )
+  STR# s r -> STR# s case r of
+    Err# _ -> Fail#
+    x -> x
 
--- tryWith :: Parsec c e s a -> (e -> Parsec c e s a) -> Parsec c e s a
--- tryWith (Parsec f) g = Parsec $ \e ix s -> case f e ix s of
---   Err# e -> runParsec# (g e) e ix s
---   x -> x
+tryWith :: Parsec c e s a -> (e -> Parsec c e s a) -> Parsec c e s a
+tryWith (Parsec f) g = Parsec $ \e p s -> case f e p s of
+  STR# s r -> case r of
+    Err# er -> runParsec# (g er) e p s
+    x -> STR# s x
 
 parser# :: (Env# (Chunk.BaseArray# c) -> Ix# -> Res# e a) -> Parsec c e s a
 parser# f = Parsec $ \e p s -> STR# s (f e p)
