@@ -22,12 +22,12 @@ import qualified GHC.Exts as E
 import qualified GHC.Word as W
 
 {- ORMOLU_DISABLE -}
-eqWord8# :: E.Word8# -> E.Word8# -> E.Int#
-wordToWord8# :: E.Word# -> E.Word8#
-word8ToWord# :: E.Word8# -> E.Word#
-indexWord8Array# :: E.ByteArray# -> E.Int# -> E.Word8#
-readWord8Array# :: E.MutableByteArray# s -> E.Int# -> E.State# s -> (# E.State# s, E.Word8# #)
-pattern W8# :: E.Word8# -> W.Word8
+eqWord8# :: Word8# -> Word8# -> E.Int#
+wordToWord8# :: E.Word# -> Word8#
+word8ToWord# :: Word8# -> E.Word#
+indexWord8Array# :: E.ByteArray# -> E.Int# -> Word8#
+readWord8Array# :: E.MutableByteArray# s -> E.Int# -> E.State# s -> (# E.State# s, Word8# #)
+pattern W8# :: Word8# -> W.Word8
 {-# INLINE eqWord8# #-}
 {-# INLINE wordToWord8# #-}
 {-# INLINE word8ToWord# #-}
@@ -38,6 +38,7 @@ pattern W8# :: E.Word8# -> W.Word8
 
 #if MIN_VERSION_base(4,16,0)
 -- GHC >=9.2
+type Word8# = E.Word8#
 
 eqWord8# = E.eqWord8#
 wordToWord8# = E.wordToWord8#
@@ -48,6 +49,7 @@ pattern W8# w# = W.W8# w#
 {-# INLINE W8# #-}
 #else
 -- GHC <9.2
+type Word8# = E.Word8#
 
 eqWord8# = E.eqWord8#
 wordToWord8# = E.narrowWord8#
