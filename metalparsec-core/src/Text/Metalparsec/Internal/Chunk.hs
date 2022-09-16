@@ -11,16 +11,12 @@ import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Primitive.ByteArray qualified as ByteArray
 import Data.Text (Text)
 import Data.Word (Word8)
-import GHC.Exts
+import GHC.Exts.Compat
 import GHC.TypeLits qualified as TypeLits
 import Text.Metalparsec.Internal.ByteArrayExt qualified as ByteArrayExt
 import Text.Metalparsec.Internal.PureMutableByteArray (PureMutableByteArray#)
 import Text.Metalparsec.Internal.PureMutableByteArray qualified as PureMutableByteArray
 import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
-
-#if !MIN_VERSION_base(4,16,0)
-type UnliftedType = TYPE 'UnliftedRep
-#endif
 
 newtype Slice# s = Slice# {getSlice# :: (# BaseArray# s, Int#, Int# #)}
 

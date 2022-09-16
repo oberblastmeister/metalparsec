@@ -62,12 +62,12 @@ pattern W8# w# = W.W8# w#
 -- GHC <9.2
 
 eqWord8# = E.eqWord8#
-wordToWord8# = narrowWord8#
-word8ToWord# = extendWord8#
-indexWord8Array# bs# i# = E.wordToWord8# (E.indexWord8Array# bs# i#)
+wordToWord8# = E.narrowWord8#
+word8ToWord# = E.extendWord8#
+indexWord8Array# bs# i# = wordToWord8# (E.indexWord8Array# bs# i#)
 readWord8Array# bs# i# s# = case E.readWord8Array# bs# i# s# of
-  (# s#, w# #) -> (# s#, wordToWord8# #)
-pattern W8# w# = W.W8# (wordToWord8# -> w#)
+  (# s#, w# #) -> (# s#, wordToWord8# w# #)
+pattern W8# w# <- W.W8# (wordToWord8# -> w#)
   where
     W8# w# = W.W8# (word8ToWord# w#)
 #endif
