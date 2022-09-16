@@ -64,11 +64,11 @@ pattern W8# w# <- W.W8# (wordToWord8# -> w#)
 #else
 -- GHC <8.8
 
-type Word8# = Word#
+type Word8# = E.Word#
 
-narrowWord8# :: Word# -> Word8#
+narrowWord8# :: E.Word# -> Word8#
 narrowWord8# = narrow8Word#
-extendWord8# :: Word# -> Word8#
+extendWord8# :: E.Word# -> Word8#
 extendWord8# w# = w#
 
 eqWord8# w1# w2# = eqWord# w1# w2#
