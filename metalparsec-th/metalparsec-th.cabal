@@ -40,7 +40,6 @@ common common-options
     ConstraintKinds,
     TypeApplications,
     KindSignatures,
-    StandaloneKindSignatures,
     DeriveFoldable,
     DeriveFunctor,
     DeriveGeneric,
@@ -61,7 +60,6 @@ common common-options
     ImpredicativeTypes,
     MagicHash,
     UnboxedTuples,
-    UnliftedNewtypes,
     RoleAnnotations,
   ghc-options:
     -Wall

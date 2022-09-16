@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Text.Metalparsec.Internal.Chunk where
 
@@ -18,7 +19,9 @@ import qualified Text.Metalparsec.Internal.UnsafePureMutableByteArray as UnsafeP
 import qualified Text.Metalparsec.Internal.SizedCompat as S
 import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
 
-newtype Slice# s = Slice# {getSlice# :: (# BaseArray# s, Int#, Int# #)}
+type Slice# (s :: UnliftedType) = (# s, Int#, Int# #)
+
+type BaseSlice# s = Slice# (BaseArray# s)
 
 data Slice s = Slice !(BaseArray# s) !Int !Int
 
@@ -34,8 +37,7 @@ type ByteChunk c = (Chunk c, Token c ~ Word8, IsByteArray# (BaseArray# c))
 
 type TokenTag c = Tag (Token c)
 
-type NotText :: Type -> Constraint
-type family NotText s where
+type family NotText (s :: Type) :: Constraint where
   NotText Text = TypeLits.TypeError (TypeLits.Text "Text cannot be treated as a chunk of tokens. Text is utf-8 encoded, and taking individual bytes from Text would violate utf-8. Please use the functions in Text.Metalparsec.Text")
   NotText _ = ()
 
@@ -59,8 +61,8 @@ class (IsArray# (BaseArray# s) (Token s), GetTokenTag (Token s)) => Chunk s wher
   type Token s :: Type
   type BaseArray# s :: UnliftedType
   type ChunkSlice s :: Type
-  toSlice# :: s -> Slice# s
-  convertSlice# :: Slice# s -> ChunkSlice s
+  toSlice# :: s -> BaseSlice# s
+  convertSlice# :: BaseSlice# s -> ChunkSlice s
 
 instance GetTokenTag Word8 where
   type Tag Word8 = Word8
@@ -98,8 +100,8 @@ instance Chunk ByteArray where
   type Token ByteArray = Word8
   type BaseArray# ByteArray = ByteArray#
   type ChunkSlice ByteArray = Bytes
-  toSlice# (ByteArray bs#) = Slice# (# bs#, 0#, 0# #)
-  convertSlice# (Slice# (# ByteArray -> bytes, I# -> off, I# -> len #)) = Bytes {bytes, off, len}
+  toSlice# (ByteArray bs#) = (# bs#, 0#, 0# #)
+  convertSlice# (# ByteArray -> bytes, I# -> off, I# -> len #) = Bytes {bytes, off, len}
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}
 
@@ -107,8 +109,8 @@ instance Chunk ShortByteString where
   type Token ShortByteString = Word8
   type BaseArray# ShortByteString = ByteArray#
   type ChunkSlice ShortByteString = Bytes
-  toSlice# (SBS bs#) = Slice# (# bs#, 0#, 0# #)
-  convertSlice# (Slice# (# ByteArray -> bytes, I# -> off, I# -> len #)) = Bytes {bytes, off, len}
+  toSlice# (SBS bs#) = (# bs#, 0#, 0# #)
+  convertSlice# (# ByteArray -> bytes, I# -> off, I# -> len #) = Bytes {bytes, off, len}
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}
 
@@ -116,8 +118,8 @@ instance Chunk Text where
   type Token Text = Word8
   type BaseArray# Text = ByteArray#
   type ChunkSlice Text = Text
-  toSlice# (UnsafeText# bs# off# len#) = Slice# (# bs#, off#, len# #)
-  convertSlice# (Slice# (# bs#, off#, len# #)) = (UnsafeText# bs# off# len#)
+  toSlice# (UnsafeText# bs# off# len#) = (# bs#, off#, len# #)
+  convertSlice# (# bs#, off#, len# #) = (UnsafeText# bs# off# len#)
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}
 
@@ -125,7 +127,7 @@ instance Chunk ByteString where
   type Token ByteString = Word8
   type BaseArray# ByteString = UnsafePureMutableByteArray.UnsafePureMutableByteArray#
   type ChunkSlice ByteString = ByteString
-  toSlice# bs = Slice# (UnsafePureMutableByteArray.fromByteString# bs)
-  convertSlice# (Slice# bs) = UnsafePureMutableByteArray.sliceByteString# bs
+  toSlice# bs = UnsafePureMutableByteArray.fromByteString# bs
+  convertSlice# bs = UnsafePureMutableByteArray.sliceByteString# bs
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}

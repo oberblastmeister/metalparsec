@@ -15,6 +15,7 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Internal.Encoding.Utf8 as T.Internal.Encoding.Utf8
 import GHC.Exts
 import qualified GHC.Exts as Exts
+import qualified Data.ByteString as B
 
 lengthByLeader :: Word8 -> Int
 lengthByLeader w = Exts.inline T.Internal.Encoding.Utf8.utf8LengthByLeader w
@@ -48,7 +49,7 @@ char4# c1# c2# c3# c4# =
 {-# INLINE char4# #-}
 
 textBytes :: Text -> [Word8]
-textBytes = toList . T.encodeUtf8
+textBytes = B.unpack . T.encodeUtf8
 
 charBytes :: Char -> [Word8]
 charBytes = textBytes . T.singleton

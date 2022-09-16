@@ -298,12 +298,12 @@ runParserRest ::
   chunk ->
   Result e (a, Chunk.ChunkSlice chunk)
 runParserRest (Parsec f) s c = case Chunk.toSlice# @chunk c of
-  Chunk.Slice# (# s#, off#, len# #) ->
+  (# s#, off#, len# #) ->
     case (f (Env# s# len#) (Ix# 0# off#) s) of
       (# _, r #) -> case r of
         Err# e -> Err e
         Fail# -> Fail
-        Ok# (Ix# _ i) a -> Ok (a, Chunk.convertSlice# @chunk (Chunk.Slice# (# s#, i, len# #)))
+        Ok# (Ix# _ i) a -> Ok (a, Chunk.convertSlice# @chunk (# s#, i, len# #))
 
 runParser :: Chunk c => Parsec c e s a -> s -> c -> Result e a
 runParser p s c = fst <$> runParserRest p s c

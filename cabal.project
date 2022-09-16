@@ -8,5 +8,4 @@ package metalparsec-core
 
 jobs: $ncpus
 tests: True
-benchmarks: True
 test-show-details: direct
