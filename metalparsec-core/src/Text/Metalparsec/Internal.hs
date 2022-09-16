@@ -13,7 +13,7 @@ import Control.Monad.State (MonadState (..))
 import Data.Bifoldable (Bifoldable (..))
 import Data.Bifunctor (Bifunctor (..))
 import Data.Bitraversable (Bitraversable (..), bisequenceA)
-import GHC.Exts
+import GHC.Exts.Compat
 import Text.Metalparsec.Internal.Chunk (Chunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
 import Prelude hiding (fail)
@@ -54,7 +54,7 @@ pattern Env# s l = (# s, l #)
 pattern Ix# :: Int# -> Int# -> Ix#
 pattern Ix# i# i## = (# i#, i## #)
 
-type ST# s (a :: TYPE r) = State# s -> (# State# s, a #)
+type ST# s a = State# s -> (# State# s, a #)
 
 -- | Contains return value and a pointer to the rest of the input buffer.
 pattern Ok# :: Ix# -> a -> Res# e a

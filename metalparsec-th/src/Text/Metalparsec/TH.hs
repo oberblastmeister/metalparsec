@@ -47,14 +47,11 @@ bytes' bs = let len = length bs in [|ensureLen len *> $(unsafeBytes' bs)|]
 unsafeBytes ::  (ByteChunk c) => [Word8] -> Up (Parsec c e s ())
 unsafeBytes = go
   where
-    go (b : bs) = [||Text.Unsafe.unsafeByte (char8 b) *> $$(go bs)||]
+    go (b : bs) = [||Text.Unsafe.unsafeByte b *> $$(go bs)||]
     go [] = [||pure ()||]
 
 unsafeBytes' :: [Word8] -> ExpQ
 unsafeBytes' = go
   where
-    go (b : bs) = [|Text.Unsafe.unsafeByte (char8 b) *> $(go bs)|]
+    go (b : bs) = [|Text.Unsafe.unsafeByte b *> $(go bs)|]
     go [] = [|pure ()|]
-
-char8 :: Word8 -> Char
-char8 = unsafeChr . fromIntegral

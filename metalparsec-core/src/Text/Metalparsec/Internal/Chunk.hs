@@ -11,16 +11,12 @@ import Data.Primitive.ByteArray (ByteArray (..))
 import Data.Primitive.ByteArray qualified as ByteArray
 import Data.Text (Text)
 import Data.Word (Word8)
-import GHC.Exts
+import GHC.Exts.Compat
 import GHC.TypeLits qualified as TypeLits
 import Text.Metalparsec.Internal.ByteArrayExt qualified as ByteArrayExt
-import Text.Metalparsec.Internal.PureMutableByteArray (PureMutableByteArray#)
 import Text.Metalparsec.Internal.PureMutableByteArray qualified as PureMutableByteArray
+import Text.Metalparsec.Internal.SizedCompat qualified as S
 import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
-
-#if !MIN_VERSION_base(4,16,0)
-type UnliftedType = TYPE 'UnliftedRep
-#endif
 
 newtype Slice# s = Slice# {getSlice# :: (# BaseArray# s, Int#, Int# #)}
 
@@ -55,6 +51,7 @@ class IsArray# (a :: UnliftedType) x | a -> x where
 
 class IsArray# a Word8 => IsByteArray# (a :: UnliftedType) where
   unsafeIndexChar8# :: a -> Int# -> Char#
+  unsafeIndexWord8# :: a -> Int# -> Word8#
   unsafeCompare# :: ByteArray# -> Int# -> a -> Int# -> Int# -> Int#
   unsafeFind# :: a -> Int# -> Word8# -> Int#
 
@@ -76,21 +73,24 @@ instance IsArray# ByteArray# Word8 where
 
 instance IsByteArray# ByteArray# where
   unsafeIndexChar8# = indexCharArray#
+  unsafeIndexWord8# = S.indexWord8Array#
   unsafeCompare# = compareByteArrays#
   unsafeFind# = ByteArrayExt.unsafeFind#
   {-# INLINE unsafeCompare# #-}
   {-# INLINE unsafeIndexChar8# #-}
   {-# INLINE unsafeFind# #-}
 
-instance IsArray# PureMutableByteArray# Word8 where
+instance IsArray# PureMutableByteArray.PureMutableByteArray# Word8 where
   unsafeIndex# = PureMutableByteArray.unsafeIndex#
   {-# INLINE unsafeIndex# #-}
 
-instance IsByteArray# PureMutableByteArray# where
+instance IsByteArray# PureMutableByteArray.PureMutableByteArray# where
   unsafeIndexChar8# = PureMutableByteArray.unsafeIndexChar8#
+  unsafeIndexWord8# = PureMutableByteArray.unsafeIndexWord8#
   unsafeCompare# = PureMutableByteArray.unsafeCompare#
   unsafeFind# = PureMutableByteArray.unsafeFind#
   {-# INLINE unsafeIndexChar8# #-}
+  {-# INLINE unsafeIndexWord8# #-}
   {-# INLINE unsafeCompare# #-}
   {-# INLINE unsafeFind# #-}
 
@@ -123,7 +123,7 @@ instance Chunk Text where
 
 instance Chunk ByteString where
   type Token ByteString = Word8
-  type BaseArray# ByteString = PureMutableByteArray#
+  type BaseArray# ByteString = PureMutableByteArray.PureMutableByteArray#
   type ChunkSlice ByteString = ByteString
   toSlice# bs = Slice# (PureMutableByteArray.fromByteString# bs)
   convertSlice# (Slice# bs) = PureMutableByteArray.sliceByteString# bs

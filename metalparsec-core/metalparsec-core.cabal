@@ -108,7 +108,7 @@ library
         Text.Metalparsec.Internal.Utf8
         Text.Metalparsec.Internal.PureMutableByteArray
         Text.Metalparsec.Internal.ByteArrayExt
-        Text.Metalparsec.Internal.UnboxedNumerics
+        Text.Metalparsec.Internal.SizedCompat
         Text.Metalparsec.Internal.Combinators
         Text.Metalparsec.Internal.Text
         Text.Metalparsec.Internal.C

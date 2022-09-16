@@ -4,12 +4,15 @@ module Text.Metalparsec.Internal.Text where
 
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Word (Word8)
 import GHC.Exts
 import GHC.Stack (HasCallStack)
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
 import Text.Metalparsec.Internal.Combinators
+import Text.Metalparsec.Internal.SizedCompat
+import Text.Metalparsec.Internal.SizedCompat qualified as S
 import Text.Metalparsec.Internal.Utf8 qualified as Utf8
 import Text.Metalparsec.Internal.Util
 
@@ -145,10 +148,10 @@ isAsciiDigit c = '0' <= c && c <= '9'
 
 -- | Does not check if eof has been hit
 -- This can also result in invalid utf8.
-unsafeByte :: ByteChunk c => Char -> Parsec c e s ()
-unsafeByte (C# ch) = Parsec \(Env# c _) (Ix# o i) s ->
-  STR# s case Chunk.unsafeIndexChar8# c i of
-    ch' -> case ch `eqChar#` ch' of
+unsafeByte :: ByteChunk c => Word8 -> Parsec c e s ()
+unsafeByte (S.W8# ch) = Parsec \(Env# c _) (Ix# o i) s ->
+  STR# s case Chunk.unsafeIndexWord8# c i of
+    ch' -> case ch `S.eqWord8#` ch' of
       1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) ()
       _ -> Fail#
 {-# INLINE unsafeByte #-}
