@@ -3,17 +3,16 @@
 module Text.Metalparsec.Internal.Text where
 
 import Data.Text (Text)
-import Data.Text qualified as T
+import qualified Data.Text as T
 import Data.Word (Word8)
 import GHC.Exts
 import GHC.Stack (HasCallStack)
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
-import Text.Metalparsec.Internal.Chunk qualified as Chunk
+import qualified Text.Metalparsec.Internal.Chunk as Chunk
 import Text.Metalparsec.Internal.Combinators
-import Text.Metalparsec.Internal.SizedCompat
-import Text.Metalparsec.Internal.SizedCompat qualified as S
-import Text.Metalparsec.Internal.Utf8 qualified as Utf8
+import qualified Text.Metalparsec.Internal.SizedCompat as S
+import qualified Text.Metalparsec.Internal.Utf8 as Utf8
 import Text.Metalparsec.Internal.Util
 
 takeWhileChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)

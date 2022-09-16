@@ -4,7 +4,7 @@ module Text.Metalparsec.Internal.ByteArrayExt
 where
 
 import GHC.Exts
-import Text.Metalparsec.Internal.C qualified as C
+import qualified Text.Metalparsec.Internal.C as C
 import Text.Metalparsec.Internal.SizedCompat
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
 

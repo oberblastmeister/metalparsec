@@ -1,8 +1,8 @@
 module Util where
 
-import Data.Attoparsec.Text qualified as Attoparsec
+import qualified Data.Attoparsec.Text as Attoparsec
 import Data.Text (Text)
-import Text.Metalparsec qualified as Metalparsec
+import qualified Text.Metalparsec as Metalparsec
 
 -- runMetal :: Text -> Metalparsec.Result Text JSProgram
 -- runMetal = metalParse Metalparsec.javascript

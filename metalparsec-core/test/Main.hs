@@ -1,6 +1,6 @@
 import Data.Functor (($>))
 import Data.Text (Text)
-import Data.Text qualified as T
+import qualified Data.Text as T
 import Test.Tasty
 import Test.Tasty.HUnit
 import Text.Metalparsec

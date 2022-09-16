@@ -8,14 +8,14 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Short.Internal (ShortByteString (..))
 import Data.Kind (Type)
 import Data.Primitive.ByteArray (ByteArray (..))
-import Data.Primitive.ByteArray qualified as ByteArray
+import qualified Data.Primitive.ByteArray as ByteArray
 import Data.Text (Text)
 import Data.Word (Word8)
 import GHC.Exts.Compat
-import GHC.TypeLits qualified as TypeLits
-import Text.Metalparsec.Internal.ByteArrayExt qualified as ByteArrayExt
-import Text.Metalparsec.Internal.UnsafePureMutableByteArray qualified as UnsafePureMutableByteArray
-import Text.Metalparsec.Internal.SizedCompat qualified as S
+import qualified GHC.TypeLits as TypeLits
+import qualified Text.Metalparsec.Internal.ByteArrayExt as ByteArrayExt
+import qualified Text.Metalparsec.Internal.UnsafePureMutableByteArray as UnsafePureMutableByteArray
+import qualified Text.Metalparsec.Internal.SizedCompat as S
 import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
 
 newtype Slice# s = Slice# {getSlice# :: (# BaseArray# s, Int#, Int# #)}

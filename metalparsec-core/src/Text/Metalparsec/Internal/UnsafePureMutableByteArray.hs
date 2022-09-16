@@ -14,19 +14,19 @@ module Text.Metalparsec.Internal.UnsafePureMutableByteArray
 where
 
 import Data.ByteString (ByteString)
-import Data.ByteString qualified as B
-import Data.ByteString.Internal qualified as B.Internal
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Internal as B.Internal
 import Data.Primitive.ByteArray (MutableByteArray (..))
 import Data.Word (Word8)
-import Foreign qualified
+import qualified Foreign
 import Foreign.ForeignPtr (withForeignPtr)
 import GHC.Exts.Compat
 import GHC.ForeignPtr (ForeignPtr (..), ForeignPtrContents (PlainPtr))
 import GHC.IO (IO (..))
 import GHC.IO.Unsafe (unsafeDupablePerformIO)
 import GHC.Word (Word8 (..))
-import Text.Metalparsec.Internal.C qualified as C
-import Text.Metalparsec.Internal.SizedCompat qualified as S
+import qualified Text.Metalparsec.Internal.C as C
+import qualified Text.Metalparsec.Internal.SizedCompat as S
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
 
 type UnsafePureMutableByteArray# = MutableByteArray# RealWorld

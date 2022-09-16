@@ -58,7 +58,6 @@ common common-options
     ExistentialQuantification,
     TypeOperators,
     OverloadedLabels,
-    ImportQualifiedPost,
     ImpredicativeTypes,
     MagicHash,
     UnboxedTuples,

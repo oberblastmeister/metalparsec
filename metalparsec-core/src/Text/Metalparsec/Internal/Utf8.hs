@@ -10,11 +10,11 @@ where
 
 import Text.Metalparsec.Internal.Compat.Word
 import Data.Text (Text)
-import Data.Text qualified as T
-import Data.Text.Encoding qualified as T
-import Data.Text.Internal.Encoding.Utf8 qualified as T.Internal.Encoding.Utf8
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import qualified Data.Text.Internal.Encoding.Utf8 as T.Internal.Encoding.Utf8
 import GHC.Exts
-import GHC.Exts qualified as Exts
+import qualified GHC.Exts as Exts
 
 lengthByLeader :: Word8 -> Int
 lengthByLeader w = Exts.inline T.Internal.Encoding.Utf8.utf8LengthByLeader w

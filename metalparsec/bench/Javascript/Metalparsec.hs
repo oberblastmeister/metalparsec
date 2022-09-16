@@ -7,7 +7,7 @@ import Control.Monad.Combinators (option, sepBy, sepBy1)
 import Data.Char (digitToInt, isSpace, isUpper)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
-import Data.Text qualified as T
+import qualified Data.Text as T
 import Javascript.Common
 import Javascript.Metalparsec.Extended
 import Text.Metalparsec

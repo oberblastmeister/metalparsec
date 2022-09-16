@@ -7,7 +7,7 @@ module Text.Metalparsec.Internal where
 import Control.Applicative (Alternative (..))
 import Control.DeepSeq (NFData (..))
 import Control.Monad (MonadPlus)
-import Control.Monad qualified as Monad
+import qualified Control.Monad as Monad
 import Control.Monad.Except (MonadError (..))
 import Control.Monad.State (MonadState (..))
 import Data.Bifoldable (Bifoldable (..))
@@ -15,7 +15,7 @@ import Data.Bifunctor (Bifunctor (..))
 import Data.Bitraversable (Bitraversable (..), bisequenceA)
 import GHC.Exts.Compat
 import Text.Metalparsec.Internal.Chunk (Chunk)
-import Text.Metalparsec.Internal.Chunk qualified as Chunk
+import qualified Text.Metalparsec.Internal.Chunk as Chunk
 import Prelude hiding (fail)
 
 newtype Parsec c e s a = Parsec

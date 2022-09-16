@@ -1,10 +1,10 @@
 module Json.Metalparsec where
 
 import Data.Scientific (Scientific)
-import Data.Scientific qualified as Sci
-import Data.Text qualified as T
+import qualified Data.Scientific as Sci
+import qualified Data.Text as T
 import Text.Metalparsec (Parsec)
-import Text.Metalparsec qualified as P
+import qualified Text.Metalparsec as P
 
 -- scientifically :: (Scientific -> a) -> Parsec c e s a
 -- scientifically h = do

@@ -4,7 +4,7 @@
 
 module Text.Metalparsec.TH where
 
-import Data.Text qualified as T
+import qualified Data.Text as T
 import GHC.Exts
 import Language.Haskell.TH (Exp, ExpQ, Q)
 #if MIN_VERSION_base(4,15,0)
@@ -16,8 +16,8 @@ import Language.Haskell.TH (TExp)
 import Data.Word (Word8)
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import Text.Metalparsec (ByteChunk, Parsec, ensureLen)
-import Text.Metalparsec.Internal.Utf8 qualified as Utf8
-import Text.Metalparsec.Text.Unsafe qualified as Text.Unsafe
+import qualified Text.Metalparsec.Internal.Utf8 as Utf8
+import qualified Text.Metalparsec.Text.Unsafe as Text.Unsafe
 import GHC.Base (unsafeChr)
 
 #if MIN_VERSION_base(4,15,0)

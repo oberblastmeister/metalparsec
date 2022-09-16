@@ -7,8 +7,8 @@ module Text.Metalparsec.Internal.Util
 where
 
 import Text.Metalparsec.Internal.Compat.Word
-import Data.Text.Array qualified
-import Data.Text.Internal qualified
+import qualified Data.Text.Array
+import qualified Data.Text.Internal
 import GHC.Base (ord)
 import GHC.Exts
 import GHC.IO (IO (..))

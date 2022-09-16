@@ -18,8 +18,8 @@ module Text.Metalparsec.Internal.SizedCompat
   )
 where
 
-import GHC.Exts qualified as E
-import GHC.Word qualified as W
+import qualified GHC.Exts as E
+import qualified GHC.Word as W
 
 {- ORMOLU_DISABLE -}
 eqWord8# :: E.Word8# -> E.Word8# -> E.Int#

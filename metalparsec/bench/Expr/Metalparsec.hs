@@ -4,7 +4,7 @@
 
 module Expr.Metalparsec where
 
-import Data.ByteString qualified as BS
+import qualified Data.ByteString as BS
 import Data.Char (isSpace)
 import Data.Function ((&))
 import Data.Text (Text)

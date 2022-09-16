@@ -1,7 +1,7 @@
 module Simple.Megaparsec (runSexp, runLongws, runNumcsv) where
 
 import Control.Applicative
-import Data.ByteString qualified as B
+import qualified Data.ByteString as B
 import Data.Char
 import Text.Megaparsec
 

@@ -3,12 +3,12 @@
 
 module Text.Metalparsec.Token where
 
-import Control.Applicative qualified as Applicative
+import qualified Control.Applicative as Applicative
 import GHC.Exts
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (Chunk)
-import Text.Metalparsec.Internal.Chunk qualified as Chunk
-import Text.Metalparsec.Internal.Combinators qualified as Combinators
+import qualified Text.Metalparsec.Internal.Chunk as Chunk
+import qualified Text.Metalparsec.Internal.Combinators as Combinators
 import Prelude hiding (fail)
 
 -- -- | Unsafely read a concrete byte from the input. It's not checked that the input has

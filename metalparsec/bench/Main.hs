@@ -1,10 +1,10 @@
 module Main where
 
-import Data.Text.IO qualified as TIO
+import qualified Data.Text.IO as TIO
 import Gauge.Main
--- import Javascript qualified
-import Simple qualified
-import Util qualified
+-- import qualified Javascript
+import qualified Simple
+import qualified Util
 
 main :: IO ()
 main = do
