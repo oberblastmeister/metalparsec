@@ -7,19 +7,6 @@
 -- if a sized unboxed numeric was in the name, e.g. 'indexWord8OffAddr#' returning
 -- 'Word#' pre-9.2. All boxed machine integers only stored 'Word#' internally!
 --
--- We target GHC 9.2's better handling. In order to maintain compatibility with
--- older GHCs, we define missing primops and wrap ones that changed type. Usually,
--- we can write a few wrappers so that 9.2 uses sized unboxed numerics everywhere,
--- and pre-9.2 uses native unboxed numerics everywhere. Sometimes we really want to
--- work with sized unboxed numerics on both, in which case we have to do more
--- involved primop wrapping.
---
--- The general pattern is as follows:
---
---  * A ticked primop means it's sized on >=9.2, native on <9.2
---  * A double-ticked primop means it's sized on all
---  * An unticked primop should mean the same as a ticked primop (no guarantees)
---
 -- Also see: https://gitlab.haskell.org/ghc/ghc/-/wikis/Unboxed-Numerics
 module Text.Metalparsec.Internal.SizedCompat
   ( eqWord8#,
