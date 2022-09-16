@@ -27,14 +27,14 @@ import Prelude hiding (fail)
 -- {-# INLINE scan1 #-}
 
 -- any :: Chunk.TokenChunk s => Parsec c e s (Chunk.Token s)
--- any = Parsec $ \e ix s -> case i ==# l of
+-- any = Parsec \e ix s -> case i ==# l of
 --   1# -> Fail#
 --   _ -> case Chunk.unsafeIndex# s i of
 --     t -> Ok# (p +# Chunk.tokenOffset# t) (i +# 1#) u t
 -- {-# INLINE any #-}
 
 -- satisfy :: Chunk.TokenChunk s => (Chunk.TokenTag s -> Bool) -> Parsec c e s (Chunk.TokenTag s)
--- satisfy f = Parsec $ \e ix s -> case i ==# l of
+-- satisfy f = Parsec \e ix s -> case i ==# l of
 --   1# -> Fail#
 --   _ -> case Chunk.unsafeIndex# s i of
 --     t | let t' = Chunk.tokenTag t, f t' -> Ok# i p u t'

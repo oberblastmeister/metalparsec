@@ -14,13 +14,16 @@ import Data.Bifoldable (Bifoldable (..))
 import Data.Bifunctor (Bifunctor (..))
 import Data.Bitraversable (Bitraversable (..), bisequenceA)
 import GHC.Exts
+import Text.Metalparsec.Internal.Chunk (Chunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
+import Prelude hiding (fail)
 
 newtype Parsec c e s a = Parsec
   { runParsec# ::
       Env# (Chunk.BaseArray# c) ->
       Ix# ->
-      ST# RealWorld (Res# e a)
+      s ->
+      (# s, (Res# e a) #)
   }
 
 type Res# e a =
@@ -40,9 +43,10 @@ type Env# (s :: UnliftedType) = (# s, Int# #)
 -- o, i
 type Ix# = (# Int#, Int# #)
 
-type ST# s (a :: TYPE r) = State# s -> (# State# s, a #)
+type STR# s e a = (# s, Res# e a #)
 
-type STR# s e a = (# State# s, Res# e a #)
+pattern STR# :: s -> Res# e a -> STR# s e a
+pattern STR# s x = (# s, x #)
 
 pattern Env# :: s -> Int# -> Env# s
 pattern Env# s l = (# s, l #)
@@ -50,8 +54,7 @@ pattern Env# s l = (# s, l #)
 pattern Ix# :: Int# -> Int# -> Ix#
 pattern Ix# i# i## = (# i#, i## #)
 
-pattern STR# :: State# s -> Res# e a -> STR# s e a
-pattern STR# s x = (# s, x #)
+type ST# s (a :: TYPE r) = State# s -> (# State# s, a #)
 
 -- | Contains return value and a pointer to the rest of the input buffer.
 pattern Ok# :: Ix# -> a -> Res# e a
@@ -78,16 +81,16 @@ unsafeCoerceRes# = unsafeCoerce#
 {-# INLINE unsafeCoerceRes# #-}
 
 instance Functor (Parsec c e s) where
-  fmap f (Parsec g) = Parsec $ \e ix s -> case g e ix s of
+  fmap f (Parsec g) = Parsec \e ix s -> case g e ix s of
     STR# s r ->
       STR# s case r of
         Ok# p a -> let !b = f a in Ok# p b
         x -> unsafeCoerceRes# x
 
 instance Applicative (Parsec c e s) where
-  pure a = Parsec $ \_e p s -> STR# s (Ok# p a)
+  pure a = Parsec \_e p s -> STR# s (Ok# p a)
 
-  Parsec ff <*> Parsec fa = Parsec $ \e p s -> case ff e p s of
+  Parsec ff <*> Parsec fa = Parsec \e p s -> case ff e p s of
     STR# s r -> case r of
       Ok# p f -> case fa e p s of
         STR# s r -> STR# s case r of
@@ -95,7 +98,7 @@ instance Applicative (Parsec c e s) where
           x -> unsafeCoerceRes# x
       x -> STR# s (unsafeCoerceRes# x)
 
-  Parsec fa <* Parsec fb = Parsec $ \e ix s -> case fa e ix s of
+  Parsec fa <* Parsec fb = Parsec \e ix s -> case fa e ix s of
     STR# s r -> case r of
       Ok# _p a ->
         case fb e ix s of
@@ -104,7 +107,7 @@ instance Applicative (Parsec c e s) where
             x -> unsafeCoerceRes# x
       x -> STR# s (unsafeCoerceRes# x)
 
-  Parsec fa *> Parsec fb = Parsec $ \e p s -> case fa e p s of
+  Parsec fa *> Parsec fb = Parsec \e p s -> case fa e p s of
     STR# s r -> case r of
       Ok# p _ -> case fb e p s of
         STR# s r -> STR# s case r of
@@ -116,7 +119,7 @@ instance Monad (Parsec c e s) where
   return = pure
   {-# INLINE return #-}
 
-  Parsec fa >>= f = Parsec $ \e p s -> case fa e p s of
+  Parsec fa >>= f = Parsec \e p s -> case fa e p s of
     STR# s r -> case r of
       Ok# p a -> runParsec# (f a) e p s
       x -> STR# s (unsafeCoerceRes# x)
@@ -125,7 +128,7 @@ instance Monad (Parsec c e s) where
   {-# INLINE (>>) #-}
 
 -- instance Bifunctor (Parsec s u) where
---   bimap f g (Parsec m) = Parsec $ \e ix s -> case m e ix s of
+--   bimap f g (Parsec m) = Parsec \e ix s -> case m e ix s of
 --     Ok# p i u a -> Ok# p i u (g a)
 --     Fail# -> Fail#
 --     Err# e -> Err# (f e)
@@ -138,10 +141,10 @@ instance Monad (Parsec c e s) where
 --   mempty = pure mempty
 
 instance Alternative (Parsec c e s) where
-  empty = Parsec $ \_ _ s -> STR# s Fail#
+  empty = Parsec \_ _ s -> STR# s Fail#
 
   -- \| Don't use this! @<|>@ is left associative, which is slower.
-  Parsec f <|> Parsec g = Parsec $ \e ix s ->
+  Parsec f <|> Parsec g = Parsec \e ix s ->
     case f e ix s of
       STR# s r -> case r of
         Fail# -> g e ix s
@@ -176,22 +179,22 @@ instance MonadPlus (Parsec c e s) where
   mplus = (<|>)
   {-# INLINE mplus #-}
 
--- instance MonadState u (Parsec c e s) where
---   get = getState
---   put = putState
---   {-# INLINE get #-}
---   {-# INLINE put #-}
+instance MonadState s (Parsec c e s) where
+  get = getState
+  put = putState
+  {-# INLINE get #-}
+  {-# INLINE put #-}
 
--- instance MonadError e (Parsec c e s) where
---   throwError = err
---   catchError = tryWith
---   {-# INLINE throwError #-}
---   {-# INLINE catchError #-}
+instance MonadError e (Parsec c e s) where
+  throwError = err
+  catchError = tryWith
+  {-# INLINE throwError #-}
+  {-# INLINE catchError #-}
 
 -- | Higher-level boxed data type for parsing results.
 data Result e a
   = -- | Contains return value and unconsumed input.
-    OK a
+    Ok a
   | -- | Recoverable-by-default failure.
     Fail
   | -- | Unrecoverble-by-default error.
@@ -199,15 +202,15 @@ data Result e a
   deriving (Show, Eq, Ord, Foldable, Traversable)
 
 instance Functor (Result e) where
-  fmap f (OK x) = OK (f x)
+  fmap f (Ok x) = Ok (f x)
   fmap _f Fail = Fail
   fmap _f (Err e) = (Err e)
 
 instance Applicative (Result e) where
-  pure = OK
+  pure = Ok
 
-  OK f <*> res = case res of
-    OK x -> OK $ f x
+  Ok f <*> res = case res of
+    Ok x -> Ok $ f x
     Fail -> Fail
     Err e -> Err e
   Fail <*> _ = Fail
@@ -216,8 +219,8 @@ instance Applicative (Result e) where
 instance Monad (Result e) where
   return = pure
 
-  OK x >>= fr = case fr x of
-    OK x -> OK x
+  Ok x >>= fr = case fr x of
+    Ok x -> Ok x
     Fail -> Fail
     Err e -> Err e
   Fail >>= _ = Fail
@@ -225,13 +228,13 @@ instance Monad (Result e) where
 
 instance Bifunctor Result where
   bimap f g = \case
-    OK x -> OK $ g x
+    Ok x -> Ok $ g x
     Err e -> Err $ f e
     Fail -> Fail
 
 instance Bifoldable Result where
   bifoldMap f g = \case
-    OK x -> g x
+    Ok x -> g x
     Err e -> f e
     Fail -> mempty
 
@@ -240,52 +243,67 @@ instance Bitraversable Result where
 
 instance (NFData e, NFData a) => NFData (Result e a) where
   rnf = \case
-    OK x -> rnf x
+    Ok x -> rnf x
     Fail -> ()
     Err e -> rnf e
 
 withOff# :: (Int# -> Parsec c e s a) -> Parsec c e s a
-withOff# f = Parsec $ \e p@(Ix# o _) s -> runParsec# (f o) e p s
+withOff# f = Parsec \e p@(Ix# o _) s -> runParsec# (f o) e p s
 {-# INLINE withOff# #-}
 
 withPos# :: (Int# -> Parsec c e s a) -> Parsec c e s a
-withPos# f = Parsec $ \e p@(Ix# _ i) s -> runParsec# (f i) e p s
+withPos# f = Parsec \e p@(Ix# _ i) s -> runParsec# (f i) e p s
 {-# INLINE withPos# #-}
 
--- getPos :: Parsec c e s Int
--- getPos = Parsec $ \_s i p u -> Ok# p i u (I# p)
+getPos :: Parsec c e s Int
+getPos = Parsec \_e p@(Ix# o _) s -> STR# s (Ok# p (I# o))
 
--- setInt# :: Int# -> Parsec c e s ()
--- setInt# p = Parsec $ \_s i _p u -> Ok# p i u ()
+getState :: Parsec c e s s
+getState = Parsec \_e p s -> STR# s (Ok# p s)
 
--- getState :: Parsec c e s u
--- getState = Parsec $ \_s i p u -> Ok# p i u u
-
--- putState :: u -> Parsec c e s ()
--- putState u = Parsec $ \_s i p _u -> Ok# p i u ()
+putState :: s -> Parsec c e s ()
+putState s = Parsec \_e p _s -> STR# s (Ok# p ())
 
 maybeResult :: Result e a -> Maybe a
 maybeResult = \case
-  OK a -> Just a
+  Ok a -> Just a
   _ -> Nothing
 
 -- | Throw a parsing error. By default, parser choice `(<|>)` can't backtrack
 --   on parser error. Use `try` to convert an error to a recoverable failure.
 err :: e -> Parsec c e s a
-err e = Parsec $ \_ _ s -> STR# s (Err# e)
+err e = Parsec \_ _ s -> STR# s (Err# e)
 
 try :: Parsec c e s a -> Parsec c e s a
-try (Parsec f) = Parsec $ \e ix s -> case f e ix s of
+try (Parsec f) = Parsec \e ix s -> case f e ix s of
   STR# s r -> STR# s case r of
     Err# _ -> Fail#
     x -> x
 
 tryWith :: Parsec c e s a -> (e -> Parsec c e s a) -> Parsec c e s a
-tryWith (Parsec f) g = Parsec $ \e p s -> case f e p s of
+tryWith (Parsec f) g = Parsec \e p s -> case f e p s of
   STR# s r -> case r of
     Err# er -> runParsec# (g er) e p s
     x -> STR# s x
 
 parser# :: (Env# (Chunk.BaseArray# c) -> Ix# -> Res# e a) -> Parsec c e s a
-parser# f = Parsec $ \e p s -> STR# s (f e p)
+parser# f = Parsec \e p s -> STR# s (f e p)
 {-# INLINE parser# #-}
+
+runParserRest ::
+  forall chunk e s a.
+  Chunk chunk =>
+  Parsec chunk e s a ->
+  s ->
+  chunk ->
+  Result e (a, Chunk.ChunkSlice chunk)
+runParserRest (Parsec f) s c = case Chunk.toSlice# @chunk c of
+  Chunk.Slice# (# s#, off#, len# #) ->
+    case (f (Env# s# len#) (Ix# 0# off#) s) of
+      (# _, r #) -> case r of
+        Err# e -> Err e
+        Fail# -> Fail
+        Ok# (Ix# _ i) a -> Ok (a, Chunk.convertSlice# @chunk (Chunk.Slice# (# s#, i, len# #)))
+
+runParser :: Chunk c => Parsec c e s a -> s -> c -> Result e a
+runParser p s c = fst <$> runParserRest p s c

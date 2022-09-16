@@ -10,8 +10,6 @@ import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import Text.Metalparsec.Internal.Chunk qualified as Chunk
 import Text.Metalparsec.Internal.Combinators
-import Text.Metalparsec.Internal.Compat.Word
-import Text.Metalparsec.Internal.UnboxedNumerics
 import Text.Metalparsec.Internal.Utf8 qualified as Utf8
 import Text.Metalparsec.Internal.Util
 
@@ -44,7 +42,7 @@ satisfyAscii f = Parsec \(Env# c l) (Ix# o i) s -> STR# s case l ==# i of
 
 -- | The predicate must not return true for chars that are not ascii.
 unsafeSatisfyAscii :: forall chunk u e. ByteChunk chunk => (Char -> Bool) -> Parsec chunk u e Char
-unsafeSatisfyAscii f = Parsec $ \(Env# c l) (Ix# o i) s -> STR# s case l ==# i of
+unsafeSatisfyAscii f = Parsec \(Env# c l) (Ix# o i) s -> STR# s case l ==# i of
   1# -> Fail#
   _ -> case Chunk.unsafeIndexChar8# c i of
     c | f (C# c) -> Ok# (Ix# (o +# 1#) (i +# 1#)) (C# c)
@@ -64,7 +62,7 @@ asciiChar c =
 
 unsafeAsciiChar :: ByteChunk c => Char -> Parsec c e s ()
 unsafeAsciiChar (C# ch) =
-  Parsec $ \(Env# c l) (Ix# o i) s -> STR# s case l ==# i of
+  Parsec \(Env# c l) (Ix# o i) s -> STR# s case l ==# i of
     1# -> Fail#
     _ -> case Chunk.unsafeIndexChar8# c i of
       ch' -> case ch `eqChar#` ch' of
@@ -82,7 +80,7 @@ text (UnsafeText# bs# off# len#) = Parsec \(Env# c l) (Ix# o i) s ->
     _ -> Fail#
 
 anyChar :: ByteChunk c => Parsec c e s Char
-anyChar = Parsec $ \(Env# c l) (Ix# o i) s -> STR# s case i ==# l of
+anyChar = Parsec \(Env# c l) (Ix# o i) s -> STR# s case i ==# l of
   1# -> Fail#
   _ -> case Chunk.unsafeIndexChar8# c i of
     c1 -> case c1 `leChar#` '\x7F'# of
@@ -106,7 +104,7 @@ anyChar = Parsec $ \(Env# c l) (Ix# o i) s -> STR# s case i ==# l of
 
 -- | Skip any UTF-8-encoded `Char`.
 anyChar_ :: ByteChunk c => Parsec c e s ()
-anyChar_ = Parsec $ \(Env# c l) (Ix# o i) s ->
+anyChar_ = Parsec \(Env# c l) (Ix# o i) s ->
   STR# s case i ==# l of
     1# -> Fail#
     _ -> case Chunk.unsafeIndexChar8# c i of
@@ -121,7 +119,7 @@ anyChar_ = Parsec $ \(Env# c l) (Ix# o i) s ->
 {-# INLINE anyChar_ #-}
 
 anyCharAscii :: ByteChunk s => Parsec s u e Char
-anyCharAscii = Parsec $ \(Env# c l) (Ix# o i) s -> STR# s case i ==# l of
+anyCharAscii = Parsec \(Env# c l) (Ix# o i) s -> STR# s case i ==# l of
   1# -> Fail#
   _ -> case Chunk.unsafeIndexChar8# c i of
     c -> case c `leChar#` '\x7F'# of
@@ -131,7 +129,7 @@ anyCharAscii = Parsec $ \(Env# c l) (Ix# o i) s -> STR# s case i ==# l of
 
 -- | Parse a UTF-8 `Char` for which a predicate holds.
 satisfyChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e Char
-satisfyChar f = Parsec $ \e ix s -> case runParsec# (anyChar @chunk) e ix s of
+satisfyChar f = Parsec \e ix s -> case runParsec# (anyChar @chunk) e ix s of
   STR# s r -> STR# s case r of
     Ok# p c | f c -> Ok# p c
     _ -> Fail#
@@ -148,7 +146,7 @@ isAsciiDigit c = '0' <= c && c <= '9'
 -- | Does not check if eof has been hit
 -- This can also result in invalid utf8.
 unsafeByte :: ByteChunk c => Char -> Parsec c e s ()
-unsafeByte (C# ch) = Parsec $ \(Env# c _) (Ix# o i) s ->
+unsafeByte (C# ch) = Parsec \(Env# c _) (Ix# o i) s ->
   STR# s case Chunk.unsafeIndexChar8# c i of
     ch' -> case ch `eqChar#` ch' of
       1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) ()

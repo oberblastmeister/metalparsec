@@ -10,7 +10,7 @@ module Text.Metalparsec.Internal.Combinators
     (<|>),
     branch,
     eof,
-    runParserWithAll,
+    runParserRest,
     runParser,
     fail,
     slice,
@@ -46,25 +46,18 @@ import Prelude hiding (fail)
 
 -- | Check that the input has at least the given number of bytes.
 ensureLen :: Int -> Parsec c e s ()
-ensureLen (I# len) = Parsec $ \(Env# _ l) p@(Ix# _ i) s ->
-  STR#
-    s
-    ( case i +# len <=# l of
-        1# -> Ok# p ()
-        _ -> Fail#
-    )
+ensureLen (I# len) = Parsec \(Env# _ l) p@(Ix# _ i) s ->
+  STR# s case i +# len <=# l of
+    1# -> Ok# p ()
+    _ -> Fail#
 {-# INLINE ensureLen #-}
 
 -- | Convert a parsing failure to an error.
 cut :: Parsec c e s a -> e -> Parsec c e s a
-cut (Parsec f) er = Parsec $ \e ix s -> case f e ix s of
-  STR# s r ->
-    STR#
-      s
-      ( case r of
-          Fail# -> Err# er
-          x -> x
-      )
+cut (Parsec f) er = Parsec \e ix s -> case f e ix s of
+  STR# s r -> STR# s case r of
+    Fail# -> Err# er
+    x -> x
 
 -- | Convert a parsing failure to a `Maybe`. If possible, use `withOption` instead.
 optional :: Parsec c e s a -> Parsec c e s (Maybe a)
@@ -77,7 +70,7 @@ optional_ p = (() <$ p) <|> pure ()
 -- -- -- | CPS'd version of `optional`. This is usually more efficient, since it gets rid of the
 -- -- --   extra `Maybe` allocation.
 -- -- withOption :: Parsec c e s a -> (a -> Parsec c e s b) -> Parsec c e s b -> Parsec c e s b
--- -- withOption (Parsec f) just (Parsec nothing) = Parsec $ \e ix s -> case f e ix s of
+-- -- withOption (Parsec f) just (Parsec nothing) = Parsec \e ix s -> case f e ix s of
 -- --   Ok# p i u a -> runParsec# (just a) e ix s
 -- --   Fail# -> nothing e ix s
 -- --   Err# e -> Err# e
@@ -111,7 +104,7 @@ infixr 3 <|>
 --   This can produce slightly more efficient code than `(<|>)`. Moreover, `ḃranch` does not
 --   backtrack from the true/false cases.
 branch :: Parsec s i u a -> Parsec s i u b -> Parsec s i u b -> Parsec s i u b
-branch pa pt pf = Parsec $ \e p s -> case runParsec# pa e p s of
+branch pa pt pf = Parsec \e p s -> case runParsec# pa e p s of
   STR# s r -> case r of
     Ok# p _ -> runParsec# pt e p s
     Fail# -> runParsec# pf e p s
@@ -122,23 +115,6 @@ eof :: Parsec c e s ()
 eof = parser# \(Env# _ l) p@(Ix# _ i) -> case l ==# i of
   1# -> Ok# p ()
   _ -> Fail#
-
-runParserWithAll ::
-  forall c e s a.
-  Chunk c =>
-  Parsec c e s a ->
-  c ->
-  Result e (a, Chunk.ChunkSlice c)
-runParserWithAll (Parsec f) s = case Chunk.toSlice# @c s of
-  Chunk.Slice# (# s#, off#, len# #) ->
-    case runRW# (f (Env# s# len#) (Ix# 0# off#)) of
-      (# _, r #) -> case r of
-        Err# e -> Err e
-        Fail# -> Fail
-        Ok# (Ix# _ i) a -> OK (a, Chunk.convertSlice# @c (Chunk.Slice# (# s#, i, len# #)))
-
-runParser :: Chunk c => Parsec c e s a -> c -> Result e a
-runParser p s = (\(x, _) -> x) <$> runParserWithAll p s
 
 -- evalParser :: Chunk s => Parsec c e s a -> u -> s -> Result e a
 -- evalParser p u s = fst <$> runParser p u s
@@ -157,7 +133,7 @@ fail = parser# \_ _ -> Fail#
 -- {-# INLINE takeWhileSuceeds #-}
 
 slice :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-slice (Parsec f) = Parsec $ \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
+slice (Parsec f) = Parsec \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
   STR# s r ->
     STR#
       s
@@ -178,7 +154,7 @@ lookahead (Parsec f) = Parsec \e p s ->
 
 -- | Convert a parsing failure to a success.
 fails :: Parsec c e s a -> Parsec c e s ()
-fails (Parsec f) = Parsec $ \e p s ->
+fails (Parsec f) = Parsec \e p s ->
   case f e p s of
     STR# s r -> STR# s case r of
       Ok# _ _ -> Fail#
@@ -222,7 +198,7 @@ chainPost f start elem = start >>= go
 -- {-# INLINE chainPre #-}
 
 -- chainl1 :: Parsec c e s a -> Parsec c e s (a -> a -> a) -> Parsec c e s a
--- chainl1 (Parsec elem) (Parsec sep) = Parsec $ \e ix s -> case elem e ix s of
+-- chainl1 (Parsec elem) (Parsec sep) = Parsec \e ix s -> case elem e ix s of
 --   Ok# p i u a -> go e ix s a
 --   x -> x
 --   where
