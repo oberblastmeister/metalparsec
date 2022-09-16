@@ -67,11 +67,11 @@ pattern W8# w# <- W.W8# (wordToWord8# -> w#)
 type Word8# = E.Word#
 
 narrowWord8# :: E.Word# -> Word8#
-narrowWord8# = narrow8Word#
+narrowWord8# = E.narrow8Word#
 extendWord8# :: E.Word# -> Word8#
 extendWord8# w# = w#
 
-eqWord8# w1# w2# = eqWord# w1# w2#
+eqWord8# w1# w2# = E.eqWord# w1# w2#
 wordToWord8# = narrowWord8#
 word8ToWord# = extendWord8#
 indexWord8Array# bs# i# = wordToWord8# (E.indexWord8Array# bs# i#)
