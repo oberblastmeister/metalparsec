@@ -1,8 +1,8 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE UnliftedFFITypes #-}
 
-module Text.Metalparsec.Internal.PureMutableByteArray
-  ( PureMutableByteArray#,
+module Text.Metalparsec.Internal.UnsafePureMutableByteArray
+  ( UnsafePureMutableByteArray#,
     unsafeIndex#,
     unsafeIndexChar8#,
     fromByteString#,
@@ -29,30 +29,29 @@ import Text.Metalparsec.Internal.C qualified as C
 import Text.Metalparsec.Internal.SizedCompat qualified as S
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
 
--- Add some layers of defense to make it somewhat hard to construct.
-type PureMutableByteArray# = MutableByteArray# RealWorld
+type UnsafePureMutableByteArray# = MutableByteArray# RealWorld
 
-pattern UnsafePureMutableArray# :: MutableByteArray# RealWorld -> PureMutableByteArray#
+pattern UnsafePureMutableArray# :: MutableByteArray# RealWorld -> UnsafePureMutableByteArray#
 pattern UnsafePureMutableArray# bs# = bs#
 
 {-# COMPLETE UnsafePureMutableArray# #-}
 
-unsafeIndex# :: PureMutableByteArray# -> Int# -> Word8
+unsafeIndex# :: UnsafePureMutableByteArray# -> Int# -> Word8
 unsafeIndex# (UnsafePureMutableArray# marr) i = accursedUnutterablePerformIO $ IO $ \s -> case readWord8Array# marr i s of
   (# s, w #) -> (# s, W8# w #)
 {-# INLINE unsafeIndex# #-}
 
-unsafeIndexChar8# :: PureMutableByteArray# -> Int# -> Char#
+unsafeIndexChar8# :: UnsafePureMutableByteArray# -> Int# -> Char#
 unsafeIndexChar8# (UnsafePureMutableArray# marr) i = case readCharArray# marr i realWorld# of
   (# _, c #) -> c
 {-# INLINE unsafeIndexChar8# #-}
 
-unsafeIndexWord8# :: PureMutableByteArray# -> Int# -> Word8#
+unsafeIndexWord8# :: UnsafePureMutableByteArray# -> Int# -> Word8#
 unsafeIndexWord8# (UnsafePureMutableArray# marr) i = case S.readWord8Array# marr i realWorld# of
   (# _, w #) -> w
 {-# INLINE unsafeIndexWord8# #-}
 
-fromByteString# :: ByteString -> (# PureMutableByteArray#, Int#, Int# #)
+fromByteString# :: ByteString -> (# UnsafePureMutableByteArray#, Int#, Int# #)
 fromByteString# bs@(B.Internal.PS fp@(ForeignPtr _ fpc) o l) =
   let res = unsafeDupablePerformIO $ withForeignPtr fp $ \p -> case fpc of
         PlainPtr marr -> do
@@ -70,12 +69,12 @@ fromByteString# bs@(B.Internal.PS fp@(ForeignPtr _ fpc) o l) =
         (MutableByteArray marr, (I# off), (I# len)) -> (# UnsafePureMutableArray# marr, off, len #)
 {-# INLINE fromByteString# #-}
 
-sliceByteString# :: (# PureMutableByteArray#, Int#, Int# #) -> ByteString
+sliceByteString# :: (# UnsafePureMutableByteArray#, Int#, Int# #) -> ByteString
 sliceByteString# ((# (UnsafePureMutableArray# marr), off, len #)) =
   B.Internal.PS (ForeignPtr (mutableByteArrayContents# marr) (PlainPtr marr)) (I# off) (I# (len -# off))
 {-# INLINE sliceByteString# #-}
 
-unsafeCompare# :: ByteArray# -> Int# -> PureMutableByteArray# -> Int# -> Int# -> Int#
+unsafeCompare# :: ByteArray# -> Int# -> UnsafePureMutableByteArray# -> Int# -> Int# -> Int#
 unsafeCompare# arr i1 (UnsafePureMutableArray# marr) i2 l =
   case accursedUnutterablePerformIO $
     C.memcmp_off'
@@ -100,7 +99,7 @@ unsafeCompare# arr i1 (UnsafePureMutableArray# marr) i2 l =
 --               _ -> (# s, word2Int# (word8ToWord# (b1 `subWord8#` b2)) #)
 -- {-# INLINE unsafeCompare #-}
 
-unsafeFind# :: PureMutableByteArray# -> Int# -> Word8# -> Int#
+unsafeFind# :: UnsafePureMutableByteArray# -> Int# -> Word8# -> Int#
 unsafeFind# (UnsafePureMutableArray# bs) o b =
   case fromIntegral $
     accursedUnutterablePerformIO $

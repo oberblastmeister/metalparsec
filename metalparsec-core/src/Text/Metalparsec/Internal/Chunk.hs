@@ -14,7 +14,7 @@ import Data.Word (Word8)
 import GHC.Exts.Compat
 import GHC.TypeLits qualified as TypeLits
 import Text.Metalparsec.Internal.ByteArrayExt qualified as ByteArrayExt
-import Text.Metalparsec.Internal.PureMutableByteArray qualified as PureMutableByteArray
+import Text.Metalparsec.Internal.UnsafePureMutableByteArray qualified as UnsafePureMutableByteArray
 import Text.Metalparsec.Internal.SizedCompat qualified as S
 import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
 
@@ -80,15 +80,15 @@ instance IsByteArray# ByteArray# where
   {-# INLINE unsafeIndexChar8# #-}
   {-# INLINE unsafeFind# #-}
 
-instance IsArray# PureMutableByteArray.PureMutableByteArray# Word8 where
-  unsafeIndex# = PureMutableByteArray.unsafeIndex#
+instance IsArray# UnsafePureMutableByteArray.UnsafePureMutableByteArray# Word8 where
+  unsafeIndex# = UnsafePureMutableByteArray.unsafeIndex#
   {-# INLINE unsafeIndex# #-}
 
-instance IsByteArray# PureMutableByteArray.PureMutableByteArray# where
-  unsafeIndexChar8# = PureMutableByteArray.unsafeIndexChar8#
-  unsafeIndexWord8# = PureMutableByteArray.unsafeIndexWord8#
-  unsafeCompare# = PureMutableByteArray.unsafeCompare#
-  unsafeFind# = PureMutableByteArray.unsafeFind#
+instance IsByteArray# UnsafePureMutableByteArray.UnsafePureMutableByteArray# where
+  unsafeIndexChar8# = UnsafePureMutableByteArray.unsafeIndexChar8#
+  unsafeIndexWord8# = UnsafePureMutableByteArray.unsafeIndexWord8#
+  unsafeCompare# = UnsafePureMutableByteArray.unsafeCompare#
+  unsafeFind# = UnsafePureMutableByteArray.unsafeFind#
   {-# INLINE unsafeIndexChar8# #-}
   {-# INLINE unsafeIndexWord8# #-}
   {-# INLINE unsafeCompare# #-}
@@ -123,9 +123,9 @@ instance Chunk Text where
 
 instance Chunk ByteString where
   type Token ByteString = Word8
-  type BaseArray# ByteString = PureMutableByteArray.PureMutableByteArray#
+  type BaseArray# ByteString = UnsafePureMutableByteArray.UnsafePureMutableByteArray#
   type ChunkSlice ByteString = ByteString
-  toSlice# bs = Slice# (PureMutableByteArray.fromByteString# bs)
-  convertSlice# (Slice# bs) = PureMutableByteArray.sliceByteString# bs
+  toSlice# bs = Slice# (UnsafePureMutableByteArray.fromByteString# bs)
+  convertSlice# (Slice# bs) = UnsafePureMutableByteArray.sliceByteString# bs
   {-# INLINE toSlice# #-}
   {-# INLINE convertSlice# #-}
