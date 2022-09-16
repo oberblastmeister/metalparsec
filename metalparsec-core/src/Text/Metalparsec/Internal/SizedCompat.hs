@@ -47,9 +47,8 @@ indexWord8Array# = E.indexWord8Array#
 readWord8Array# = E.readWord8Array#
 pattern W8# w# = W.W8# w#
 {-# INLINE W8# #-}
-#endif
 
-#if MIN_VERSION_BASE(4,13,0)
+#elif MIN_VERSION_base(4,13,0)
 -- GHC <9.2
 type Word8# = E.Word8#
 
