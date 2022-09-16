@@ -14,7 +14,6 @@ import Data.Word (Word8)
 import GHC.Exts.Compat
 import GHC.TypeLits qualified as TypeLits
 import Text.Metalparsec.Internal.ByteArrayExt qualified as ByteArrayExt
-import Text.Metalparsec.Internal.PureMutableByteArray (PureMutableByteArray#)
 import Text.Metalparsec.Internal.PureMutableByteArray qualified as PureMutableByteArray
 import Text.Metalparsec.Internal.SizedCompat qualified as S
 import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
@@ -81,11 +80,11 @@ instance IsByteArray# ByteArray# where
   {-# INLINE unsafeIndexChar8# #-}
   {-# INLINE unsafeFind# #-}
 
-instance IsArray# PureMutableByteArray# Word8 where
+instance IsArray# PureMutableByteArray.PureMutableByteArray# Word8 where
   unsafeIndex# = PureMutableByteArray.unsafeIndex#
   {-# INLINE unsafeIndex# #-}
 
-instance IsByteArray# PureMutableByteArray# where
+instance IsByteArray# PureMutableByteArray.PureMutableByteArray# where
   unsafeIndexChar8# = PureMutableByteArray.unsafeIndexChar8#
   unsafeIndexWord8# = PureMutableByteArray.unsafeIndexWord8#
   unsafeCompare# = PureMutableByteArray.unsafeCompare#
@@ -124,7 +123,7 @@ instance Chunk Text where
 
 instance Chunk ByteString where
   type Token ByteString = Word8
-  type BaseArray# ByteString = PureMutableByteArray#
+  type BaseArray# ByteString = PureMutableByteArray.PureMutableByteArray#
   type ChunkSlice ByteString = ByteString
   toSlice# bs = Slice# (PureMutableByteArray.fromByteString# bs)
   convertSlice# (Slice# bs) = PureMutableByteArray.sliceByteString# bs

@@ -29,7 +29,13 @@ import Text.Metalparsec.Internal.C qualified as C
 import Text.Metalparsec.Internal.SizedCompat qualified as S
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
 
-newtype PureMutableByteArray# = UnsafePureMutableArray# (MutableByteArray# RealWorld)
+-- Add some layers of defense to make it somewhat hard to construct.
+type PureMutableByteArray# = MutableByteArray# RealWorld
+
+pattern UnsafePureMutableArray# :: MutableByteArray# RealWorld -> PureMutableByteArray#
+pattern UnsafePureMutableArray# bs# = bs#
+
+{-# COMPLETE UnsafePureMutableArray# #-}
 
 unsafeIndex# :: PureMutableByteArray# -> Int# -> Word8
 unsafeIndex# (UnsafePureMutableArray# marr) i = accursedUnutterablePerformIO $ IO $ \s -> case readWord8Array# marr i s of
