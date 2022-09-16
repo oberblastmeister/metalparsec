@@ -9,6 +9,7 @@ module Text.Metalparsec.Internal.PureMutableByteArray
     sliceByteString#,
     unsafeCompare#,
     unsafeFind#,
+    unsafeIndexWord8#,
   )
 where
 
@@ -25,8 +26,8 @@ import GHC.IO (IO (..))
 import GHC.IO.Unsafe (unsafeDupablePerformIO)
 import GHC.Word (Word8 (..))
 import Text.Metalparsec.Internal.C qualified as C
+import Text.Metalparsec.Internal.SizedCompat qualified as S
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
-import Text.Metalparsec.Internal.UnboxedNumerics
 
 newtype PureMutableByteArray# = UnsafePureMutableArray# (MutableByteArray# RealWorld)
 
@@ -39,6 +40,11 @@ unsafeIndexChar8# :: PureMutableByteArray# -> Int# -> Char#
 unsafeIndexChar8# (UnsafePureMutableArray# marr) i = case readCharArray# marr i realWorld# of
   (# _, c #) -> c
 {-# INLINE unsafeIndexChar8# #-}
+
+unsafeIndexWord8# :: PureMutableByteArray# -> Int# -> Word8#
+unsafeIndexWord8# (UnsafePureMutableArray# marr) i = case S.readWord8Array# marr i realWorld# of
+  (# _, w #) -> w
+{-# INLINE unsafeIndexWord8# #-}
 
 fromByteString# :: ByteString -> (# PureMutableByteArray#, Int#, Int# #)
 fromByteString# bs@(B.Internal.PS fp@(ForeignPtr _ fpc) o l) =
@@ -95,7 +101,7 @@ unsafeFind# (UnsafePureMutableArray# bs) o b =
       C.memchr_off'
         bs
         (fromIntegral $ I# o)
-        (fromIntegral $ W8### b)
+        (fromIntegral $ S.W8# b)
         (fromIntegral $ I# (sizeofMutableByteArray# bs -# o)) of
     I# i -> i
 {-# INLINE unsafeFind# #-}

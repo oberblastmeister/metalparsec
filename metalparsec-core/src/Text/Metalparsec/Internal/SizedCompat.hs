@@ -33,6 +33,7 @@ pattern W8# :: E.Word8# -> W.Word8
 {-# INLINE word8ToWord# #-}
 {-# INLINE indexWord8Array# #-}
 {-# INLINE readWord8Array# #-}
+{-# COMPLETE W8# #-}
 {- ORMOLU_ENABLE -}
 
 #if MIN_VERSION_base(4,16,0)

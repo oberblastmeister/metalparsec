@@ -16,6 +16,7 @@ import GHC.TypeLits qualified as TypeLits
 import Text.Metalparsec.Internal.ByteArrayExt qualified as ByteArrayExt
 import Text.Metalparsec.Internal.PureMutableByteArray (PureMutableByteArray#)
 import Text.Metalparsec.Internal.PureMutableByteArray qualified as PureMutableByteArray
+import Text.Metalparsec.Internal.SizedCompat qualified as S
 import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
 
 newtype Slice# s = Slice# {getSlice# :: (# BaseArray# s, Int#, Int# #)}
@@ -51,6 +52,7 @@ class IsArray# (a :: UnliftedType) x | a -> x where
 
 class IsArray# a Word8 => IsByteArray# (a :: UnliftedType) where
   unsafeIndexChar8# :: a -> Int# -> Char#
+  unsafeIndexWord8# :: a -> Int# -> Word8#
   unsafeCompare# :: ByteArray# -> Int# -> a -> Int# -> Int# -> Int#
   unsafeFind# :: a -> Int# -> Word8# -> Int#
 
@@ -72,6 +74,7 @@ instance IsArray# ByteArray# Word8 where
 
 instance IsByteArray# ByteArray# where
   unsafeIndexChar8# = indexCharArray#
+  unsafeIndexWord8# = S.indexWord8Array#
   unsafeCompare# = compareByteArrays#
   unsafeFind# = ByteArrayExt.unsafeFind#
   {-# INLINE unsafeCompare# #-}
@@ -84,9 +87,11 @@ instance IsArray# PureMutableByteArray# Word8 where
 
 instance IsByteArray# PureMutableByteArray# where
   unsafeIndexChar8# = PureMutableByteArray.unsafeIndexChar8#
+  unsafeIndexWord8# = PureMutableByteArray.unsafeIndexWord8#
   unsafeCompare# = PureMutableByteArray.unsafeCompare#
   unsafeFind# = PureMutableByteArray.unsafeFind#
   {-# INLINE unsafeIndexChar8# #-}
+  {-# INLINE unsafeIndexWord8# #-}
   {-# INLINE unsafeCompare# #-}
   {-# INLINE unsafeFind# #-}
 
