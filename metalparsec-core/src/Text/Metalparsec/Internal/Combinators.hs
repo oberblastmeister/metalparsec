@@ -211,7 +211,7 @@ chainPost (Parsec elem) (Parsec post) = Parsec $ \e p s -> case elem e p s of
 -- >
 -- >  addop   =   do{ symbol "+"; return (+) }
 -- >          <|> do{ symbol "-"; return (-) }
-chainl1 :: Parsec c e s a -> Parsec c e s (a -> a -> a) -> Parsec c e s a
+chainl1 :: forall c e s a. Parsec c e s a -> Parsec c e s (a -> a -> a) -> Parsec c e s a
 chainl1 (Parsec elem) (Parsec sep) = Parsec $ \e p s -> case elem e p s of
   STR# s r -> case r of
     Ok# p a -> go e p s a
@@ -221,7 +221,7 @@ chainl1 (Parsec elem) (Parsec sep) = Parsec $ \e p s -> case elem e p s of
       STR# s r -> case r of
         Ok# p f -> case elem e p s of
           STR# s r -> case r of
-            Ok# p y -> go e p s $! f x y
+            Ok# p y -> let !x' = f x y in go e p s x'
             Fail# -> STR# s $# Ok# p x
             Err# e -> STR# s $# Err# e
         Fail# -> STR# s $# Ok# p x
