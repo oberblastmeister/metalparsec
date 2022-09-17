@@ -1,11 +1,5 @@
 packages: */*.cabal
-package metalparsec
-    ghc-options: -j
-package metalparsec-th
-    ghc-options: -j
 package metalparsec-core
-    ghc-options: -j
-package metalparsec-stream
     ghc-options: -j
 
 jobs: $ncpus

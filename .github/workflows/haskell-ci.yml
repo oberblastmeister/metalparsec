@@ -172,6 +172,7 @@ jobs:
         run: |
           touch cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/metalparsec-core" >> cabal.project
+          echo "packages: $GITHUB_WORKSPACE/source/metalparsec-stream" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/metalparsec" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/metalparsec-th" >> cabal.project
           cat cabal.project
@@ -187,6 +188,8 @@ jobs:
         run: |
           PKGDIR_metalparsec_core="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-core-[0-9.]*')"
           echo "PKGDIR_metalparsec_core=${PKGDIR_metalparsec_core}" >> "$GITHUB_ENV"
+          PKGDIR_metalparsec_stream="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-stream-[0-9.]*')"
+          echo "PKGDIR_metalparsec_stream=${PKGDIR_metalparsec_stream}" >> "$GITHUB_ENV"
           PKGDIR_metalparsec="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-[0-9.]*')"
           echo "PKGDIR_metalparsec=${PKGDIR_metalparsec}" >> "$GITHUB_ENV"
           PKGDIR_metalparsec_th="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-th-[0-9.]*')"
@@ -195,9 +198,12 @@ jobs:
           touch cabal.project
           touch cabal.project.local
           echo "packages: ${PKGDIR_metalparsec_core}" >> cabal.project
+          echo "packages: ${PKGDIR_metalparsec_stream}" >> cabal.project
           echo "packages: ${PKGDIR_metalparsec}" >> cabal.project
           echo "packages: ${PKGDIR_metalparsec_th}" >> cabal.project
           echo "package metalparsec-core" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
+          echo "package metalparsec-stream" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           echo "package metalparsec" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
@@ -205,7 +211,7 @@ jobs:
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           cat >> cabal.project <<EOF
           EOF
-          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(metalparsec|metalparsec-core|metalparsec-th|text)$/; }' >> cabal.project.local
+          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(metalparsec|metalparsec-core|metalparsec-stream|metalparsec-th|text)$/; }' >> cabal.project.local
           cat cabal.project
           cat cabal.project.local
       - name: dump install plan
@@ -234,6 +240,8 @@ jobs:
       - name: cabal check
         run: |
           cd ${PKGDIR_metalparsec_core} || false
+          ${CABAL} -vnormal check
+          cd ${PKGDIR_metalparsec_stream} || false
           ${CABAL} -vnormal check
           cd ${PKGDIR_metalparsec} || false
           ${CABAL} -vnormal check
