@@ -77,18 +77,9 @@ common common-options
       -Wno-ambiguous-fields
   build-depends:
     base >= 4.11 && <5,
-    primitive,
-    text >= 2.0,
-    bytestring,
-    vector,
-    vector-stream,
-    template-haskell,
-    deepseq,
-    mtl,
     metalparsec-core,
-  if impl(ghc < 9.2)
-    build-depends:
-      word-compat
+    metalparsec-th,
+    metalparsec-stream,
 
 library
   import: common-options

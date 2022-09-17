@@ -1,5 +1,5 @@
 cabal-version:      3.6
-name:               metalparsec-th
+name:               metalparsec-stream
 version:            0.1.0.0
 synopsis: Fast parser combinators
 description:
@@ -78,14 +78,18 @@ common common-options
   build-depends:
     base >= 4.11 && <5,
     text >= 2.0,
-    template-haskell,
+    bytestring,
+    vector,
+    vector-stream,
+    containers,
+    unordered-containers,
     metalparsec-core,
 
 library
   import: common-options
   hs-source-dirs: src
   exposed-modules:
-    Text.Metalparsec.TH
+    Text.Metalparsec.Stream
   ghc-options: -O2
   -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
   -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes

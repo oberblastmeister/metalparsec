@@ -80,9 +80,6 @@ common common-options
     primitive,
     text >= 2.0,
     bytestring,
-    vector,
-    vector-stream,
-    template-haskell,
     deepseq,
     mtl,
   if impl(ghc < 9.2)
