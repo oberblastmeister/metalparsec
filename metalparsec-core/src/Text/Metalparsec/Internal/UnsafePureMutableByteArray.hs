@@ -28,6 +28,7 @@ import GHC.Word (Word8 (..))
 import qualified Text.Metalparsec.Internal.C as C
 import qualified Text.Metalparsec.Internal.SizedCompat as S
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
+import qualified Text.Metalparsec.Internal.SizedCompat as S
 
 type UnsafePureMutableByteArray# = MutableByteArray# RealWorld
 
@@ -46,7 +47,7 @@ unsafeIndexChar8# (UnsafePureMutableArray# marr) i = case readCharArray# marr i 
   (# _, c #) -> c
 {-# INLINE unsafeIndexChar8# #-}
 
-unsafeIndexWord8# :: UnsafePureMutableByteArray# -> Int# -> Word8#
+unsafeIndexWord8# :: UnsafePureMutableByteArray# -> Int# -> S.Word8#
 unsafeIndexWord8# (UnsafePureMutableArray# marr) i = case S.readWord8Array# marr i realWorld# of
   (# _, w #) -> w
 {-# INLINE unsafeIndexWord8# #-}
@@ -94,12 +95,12 @@ unsafeCompare# arr i1 (UnsafePureMutableArray# marr) i2 l =
 --       _ ->
 --         case indexWord8Array# arr (i +# i1) of
 --           b1 -> case readWord8Array# marr (i +# i2) s of
---             (# s, b2 #) -> case b1 `eqWord8#` b2 of
+--             (# s, b2 #) -> case b1 `eqS.Word8#` b2 of
 --               1# -> go (i +# 1#) s
---               _ -> (# s, word2Int# (word8ToWord# (b1 `subWord8#` b2)) #)
+--               _ -> (# s, word2Int# (word8ToWord# (b1 `subS.Word8#` b2)) #)
 -- {-# INLINE unsafeCompare #-}
 
-unsafeFind# :: UnsafePureMutableByteArray# -> Int# -> Word8# -> Int#
+unsafeFind# :: UnsafePureMutableByteArray# -> Int# -> S.Word8# -> Int#
 unsafeFind# (UnsafePureMutableArray# bs) o b =
   case fromIntegral $
     accursedUnutterablePerformIO $

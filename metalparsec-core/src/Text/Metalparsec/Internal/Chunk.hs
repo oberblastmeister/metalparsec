@@ -53,9 +53,9 @@ class IsArray# (a :: UnliftedType) x | a -> x where
 
 class IsArray# a Word8 => IsByteArray# (a :: UnliftedType) where
   unsafeIndexChar8# :: a -> Int# -> Char#
-  unsafeIndexWord8# :: a -> Int# -> Word8#
+  unsafeIndexWord8# :: a -> Int# -> S.Word8#
   unsafeCompare# :: ByteArray# -> Int# -> a -> Int# -> Int# -> Int#
-  unsafeFind# :: a -> Int# -> Word8# -> Int#
+  unsafeFind# :: a -> Int# -> S.Word8# -> Int#
 
 class (IsArray# (BaseArray# s) (Token s), GetTokenTag (Token s)) => Chunk s where
   type Token s :: Type

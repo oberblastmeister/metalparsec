@@ -14,6 +14,7 @@ module Text.Metalparsec.Internal.SizedCompat
     word8ToWord#,
     indexWord8Array#,
     readWord8Array#,
+    Word8#,
     pattern W8#,
   )
 where
