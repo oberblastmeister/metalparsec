@@ -32,8 +32,8 @@ type Res# e a =
       Ix#,
       -- a
       a
-    #) |
-    (# #) |
+    #)|
+    (# #)|
     (# e #)
   #)
 
@@ -65,7 +65,7 @@ pattern Err# e = (# | | (# e #) #)
 
 -- | Constructor for recoverable failure.
 pattern Fail# :: Res# e a
-pattern Fail# = (# | (# #) | #)
+pattern Fail# = (# | (##) | #)
 
 {-# COMPLETE STR# #-}
 
@@ -149,16 +149,16 @@ instance Monad (Parsec c e s) where
 instance Alternative (Parsec c e s) where
   empty = Parsec $ \_ _ s -> STR# s Fail#
 
-  -- \| Don't use this! @<|>@ is left associative, which is slower.
+  -- Don't use this! @<|>@ is left associative, which is slower.
   Parsec f <|> Parsec g = Parsec $ \e ix s ->
     case f e ix s of
       STR# s r -> case r of
         Fail# -> g e ix s
         x -> STR# s x
 
-  -- \| Run a Parsec zero more times, collect the results in a list. Note: for optimal performance,
-  --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
-  --   combinator or a custom Parsec.
+  -- Run a Parsec zero more times, collect the results in a list. Note: for optimal performance,
+  -- try to avoid this. Often it is possible to get rid of the intermediate list by using a
+  -- combinator or a custom Parsec.
   many (Parsec f) = Parsec (go [])
     where
       go xs e p s = case f e p s of
@@ -167,9 +167,9 @@ instance Alternative (Parsec c e s) where
           Fail# -> STR# s (Ok# p $ reverse xs)
           Err# e -> STR# s (Err# e)
 
-  -- \| Run a Parsec one more times, collect the results in a list. Note: for optimal performance,
-  --   try to avoid this. Often it is possible to get rid of the intermediate list by using a
-  --   combinator or a custom Parsec.
+  -- Run a Parsec one more times, collect the results in a list. Note: for optimal performance,
+  -- try to avoid this. Often it is possible to get rid of the intermediate list by using a
+  -- combinator or a custom Parsec.
   -- some p = (:) <$> p <*> many p
   some p@(Parsec f) = p >>= \x -> Parsec (go [x])
     where
@@ -261,25 +261,30 @@ withPos# :: (Int# -> Parsec c e s a) -> Parsec c e s a
 withPos# f = Parsec $ \e p@(Ix# _ i) s -> runParsec# (f i) e p s
 {-# INLINE withPos# #-}
 
+-- | Get the current position in the input.
 getPos :: Parsec c e s Int
 getPos = Parsec $ \_e p@(Ix# o _) s -> STR# s (Ok# p (I# o))
 
+-- | Get the current state
 getState :: Parsec c e s s
 getState = Parsec $ \_e p s -> STR# s (Ok# p s)
 
+-- | Set the current state
 putState :: s -> Parsec c e s ()
 putState s = Parsec $ \_e p _s -> STR# s (Ok# p ())
 
+-- | Turn a `Result` into a `Maybe`
 maybeResult :: Result e a -> Maybe a
 maybeResult = \case
   Ok a -> Just a
   _ -> Nothing
 
 -- | Throw a parsing error. By default, parser choice `(<|>)` can't backtrack
---   on parser error. Use `try` to convert an error to a recoverable failure.
+-- on parser error. Use `try` to convert an error to a recoverable failure.
 err :: e -> Parsec c e s a
 err e = Parsec $ \_ _ s -> STR# s (Err# e)
 
+-- | Convert a parsing error into failure.
 try :: Parsec c e s a -> Parsec c e s a
 try (Parsec f) = Parsec $ \e ix s -> case f e ix s of
   STR# s r ->
@@ -287,30 +292,24 @@ try (Parsec f) = Parsec $ \e ix s -> case f e ix s of
       Err# _ -> Fail#
       x -> x
 
+-- | Continue parsing from a parsing error.
 tryWith :: Parsec c e s a -> (e -> Parsec c e s a) -> Parsec c e s a
 tryWith (Parsec f) g = Parsec $ \e p s -> case f e p s of
   STR# s r -> case r of
     Err# er -> runParsec# (g er) e p s
     x -> STR# s x
 
+-- | Create a parser that doesn't care about the state.
 parser# :: (Env# (Chunk.BaseArray# c) -> Ix# -> Res# e a) -> Parsec c e s a
 parser# f = Parsec $ \e p s -> STR# s $# f e p
 {-# INLINE parser# #-}
 
-runParserRest ::
-  forall chunk e s a.
-  Chunk chunk =>
-  Parsec chunk e s a ->
-  s ->
-  chunk ->
-  Result e (a, Chunk.ChunkSlice chunk)
-runParserRest (Parsec f) s c = case Chunk.toSlice# @chunk c of
+-- | Run a parser
+runParser :: forall chunk e s a. Chunk chunk => Parsec chunk e s a -> s -> chunk -> Result e a
+runParser (Parsec f) s c = case Chunk.toSlice# @chunk c of
   (# s#, off#, len# #) ->
     case (f (Env# s# len#) (Ix# 0# off#) s) of
       (# _, r #) -> case r of
         Err# e -> Err e
         Fail# -> Fail
-        Ok# (Ix# _ i) a -> Ok (a, Chunk.convertSlice# @chunk (# s#, i, len# #))
-
-runParser :: Chunk c => Parsec c e s a -> s -> c -> Result e a
-runParser p s c = fst <$> runParserRest p s c
+        Ok# (Ix# _ _) a -> Ok a

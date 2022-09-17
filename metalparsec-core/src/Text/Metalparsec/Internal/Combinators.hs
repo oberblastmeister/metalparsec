@@ -1,6 +1,7 @@
 module Text.Metalparsec.Internal.Combinators
   ( ensureLen,
     cut,
+    cutting,
     optional,
     optional_,
     many_,
@@ -8,7 +9,6 @@ module Text.Metalparsec.Internal.Combinators
     (<|>),
     branch,
     eof,
-    runParserRest,
     runParser,
     fail,
     slice,
@@ -16,22 +16,23 @@ module Text.Metalparsec.Internal.Combinators
     lookahead,
     fails,
     notFollowedBy,
-    -- -- * chain
-    -- chainPre,
-    -- chainPost,
-    -- chainl1,
-    -- chainr1,
 
-    -- -- * @from Text.Metalparsec.Internal@
-    -- err,
-    -- try,
-    -- tryWith,
-    -- withOff#,
-    -- withPos#,
-    -- getPos,
-    -- setInt#,
-    -- getState,
-    -- putState,
+    -- * chain
+    chainPre,
+    chainPost,
+    chainl1,
+    chainr1,
+
+    -- * @from Text.Metalparsec.Internal@
+    err,
+    try,
+    tryWith,
+    withOff#,
+    withPos#,
+    getPos,
+    getState,
+    putState,
+    withOption,
   )
 where
 
@@ -55,10 +56,21 @@ ensureLen (I# len) = Parsec $ \(Env# _ l) p@(Ix# _ i) s ->
 
 -- | Convert a parsing failure to an error.
 cut :: Parsec c e s a -> e -> Parsec c e s a
-cut (Parsec f) er = Parsec $ \e ix s -> case f e ix s of
+cut (Parsec f) er = Parsec $ \e p s -> case f e p s of
   STR# s r ->
     STR# s $# case r of
       Fail# -> Err# er
+      x -> x
+
+-- | Run the parser, if we get a failure, throw the given error, but if we get an error, merge the
+-- inner and the newly given errors using the @e -> e -> e@ function. This can be useful for
+-- implementing parsing errors which may propagate hints or accummulate contextual information.
+cutting :: Parsec c e s a -> e -> (e -> e -> e) -> Parsec c e s a
+cutting (Parsec f) er merge = Parsec $ \e p s -> case f e p s of
+  STR# s r ->
+    STR# s $# case r of
+      Fail# -> Err# er
+      Err# er' -> let !er'' = merge er' er in Err# er''
       x -> x
 
 -- | Convert a parsing failure to a `Maybe`. If possible, use `withOption` instead.
@@ -69,14 +81,15 @@ optional p = (Just <$> p) <|> pure Nothing
 optional_ :: Parsec c e s a -> Parsec c e s ()
 optional_ p = (() <$ p) <|> pure ()
 
--- -- -- | CPS'd version of `optional`. This is usually more efficient, since it gets rid of the
--- -- --   extra `Maybe` allocation.
--- -- withOption :: Parsec c e s a -> (a -> Parsec c e s b) -> Parsec c e s b -> Parsec c e s b
--- -- withOption (Parsec f) just (Parsec nothing) = Parsec $ \e ix s -> case f e ix s of
--- --   Ok# p i u a -> runParsec# (just a) e ix s
--- --   Fail# -> nothing e ix s
--- --   Err# e -> Err# e
--- -- {-# INLINE withOption #-}
+-- | CPS'd version of `optional`. This is usually more efficient, since it gets rid of the
+-- extra `Maybe` allocation.
+withOption :: Parsec c e s a -> (a -> Parsec c e s b) -> Parsec c e s b -> Parsec c e s b
+withOption (Parsec f) just (Parsec nothing) = Parsec $ \e p s -> case f e p s of
+  STR# s r -> case r of
+    Ok# p a -> runParsec# (just a) e p s
+    Fail# -> nothing e p s
+    Err# e -> STR# s $# Err# e
+{-# INLINE withOption #-}
 
 -- | Skip a Parsec zero more times.
 many_ :: Parsec c e s a -> Parsec c e s ()
@@ -118,31 +131,16 @@ eof = parser# $ \(Env# _ l) p@(Ix# _ i) -> case l ==# i of
   1# -> Ok# p ()
   _ -> Fail#
 
--- evalParser :: Chunk s => Parsec c e s a -> u -> s -> Result e a
--- evalParser p u s = fst <$> runParser p u s
-
+-- Fail the parser
 fail :: Parsec c e s a
 fail = parser# $ \_ _ -> Fail#
-
--- takeWhileSuceeds :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e (Chunk.ChunkSlice chunk)
--- takeWhileSuceeds parser = withOff# $ \i -> Parsec $ go i
---   where
---     go i0 e ix s = case runParsec# parser e ix s of
---       STR# s r -> case r of
---         Fail# -> Ok# p (Chunk.convertSlice# @chunk (Chunk.Slice# (# s, i0, i -# i0 #)))
---         Ok# p _ -> go i0 e ix s
---         Err# e -> Err# e
--- {-# INLINE takeWhileSuceeds #-}
 
 slice :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e (Chunk.ChunkSlice chunk)
 slice (Parsec f) = Parsec $ \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
   STR# s r ->
-    STR#
-      s
-      ( case r of
-          Ok# p@(Ix# _ i) _a -> Ok# p (Chunk.convertSlice# @chunk (# c, i0, i -# i0 #))
-          x -> unsafeCoerceRes# x
-      )
+    STR# s $# case r of
+      Ok# p@(Ix# _ i) _a -> Ok# p (Chunk.convertSlice# @chunk (# c, i0, i -# i0 #))
+      x -> unsafeCoerceRes# x
 
 manySlice :: Chunk c => Parsec c e s a -> Parsec c e s (Chunk.ChunkSlice c)
 manySlice = slice . many_
@@ -159,76 +157,98 @@ fails :: Parsec c e s a -> Parsec c e s ()
 fails (Parsec f) = Parsec $ \e p s ->
   case f e p s of
     STR# s r ->
-      STR#
-        s
-        ( case r of
-            Ok# _ _ -> Fail#
-            Fail# -> Ok# p ()
-            Err# e -> Err# e
-        )
+      STR# s $# case r of
+        Ok# _ _ -> Fail#
+        Fail# -> Ok# p ()
+        Err# e -> Err# e
 
 -- | Succeed if the first parser succeeds and the second one fails.
 notFollowedBy :: Parsec c e s a -> Parsec c e s b -> Parsec c e s a
 notFollowedBy p1 p2 = p1 <* fails p2
 
--- | An analogue of the list `foldl` function: first parse a @b@, then parse zero or more @a@-s,
---   and combine the results in a left-nested way by the @b -> a -> b@ function. Note: this is not
---   the usual `chainl` function from the parsec libraries!
-chainl :: (b -> a -> b) -> Parsec c e s b -> Parsec c e s a -> Parsec c e s b
-chainl f start elem = start >>= go
+-- | An analogue of the list `foldr` function: parse zero or more @a@-s, terminated by a @b@, and
+-- combine the results in a right-nested way using the @a -> b -> b@ function. Note: this is not
+-- the usual `chainr` function from the parsec libraries!
+chainPre :: Parsec c e s (a -> a) -> Parsec c e s a -> Parsec c e s a
+chainPre (Parsec elem) (Parsec end) = Parsec go
   where
-    go b = do { !a <- elem; go $! f b a } <|> pure b
-{-# INLINE chainl #-}
+    go e p s = case elem e p s of
+      STR# s r -> case r of
+        Ok# p f -> case go e p s of
+          STR# s r ->
+            STR# s $# case r of
+              Ok# p b -> let !b' = f b in Ok# p b'
+              x -> x
+        Fail# -> end e p s
+        Err# e -> STR# s $# Err# e
+{-# INLINE chainPre #-}
 
--- | An analogue of the list `foldl` function: first parse a @b@, then parse zero or more @a@-s,
---   and combine the results in a left-nested way by the @b -> a -> b@ function. Note: this is not
---   the usual `chainl` function from the parsec libraries!
-chainPost :: (b -> a -> b) -> Parsec c e s b -> Parsec c e s a -> Parsec c e s b
-chainPost f start elem = start >>= go
+chainPost :: Parsec c e s a -> Parsec c e s (a -> a) -> Parsec c e s a
+chainPost (Parsec elem) (Parsec post) = Parsec $ \e p s -> case elem e p s of
+  STR# s r -> case r of
+    Ok# p a -> go e p s a
+    x -> STR# s x
   where
-    go b = do { !a <- elem; go $! f b a } <|> pure b
+    go e p s x = case post e p s of
+      STR# s r -> case r of
+        Ok# p f -> let !x' = f x in go e p s x'
+        Fail# -> STR# s $# Ok# p x
+        Err# e -> STR# s $# Err# e
 {-# INLINE chainPost #-}
 
--- -- | An analogue of the list `foldr` function: parse zero or more @a@-s, terminated by a @b@, and
--- --   combine the results in a right-nested way using the @a -> b -> b@ function. Note: this is not
--- --   the usual `chainr` function from the parsec libraries!
--- chainPre :: (a -> b -> b) -> Parsec c e s a -> Parsec c e s b -> Parsec c e s b
--- chainPre f (Parsec elem) (Parsec end) = Parsec go
---   where
---     go e ix s = case elem e ix s of
---       Ok# p i u a -> case go e ix s of
---         Ok# p i u b -> let !b' = f a b in Ok# p i u b'
---         x -> x
---       Fail# -> end e ix s
---       Err# e -> Err# e
--- {-# INLINE chainPre #-}
+-- | @chainl1 p op@ parses /one/ or more occurrences of @p@,
+-- separated by @op@ Returns a value obtained by a /left/ associative
+-- application of all functions returned by @op@ to the values returned
+-- by @p@. This parser can for example be used to eliminate left
+-- recursion which typically occurs in expression grammars.
+--
+-- >  expr    = term   `chainl1` addop
+-- >  term    = factor `chainl1` mulop
+-- >  factor  = parens expr <|> integer
+-- >
+-- >  mulop   =   do{ symbol "*"; return (*)   }
+-- >          <|> do{ symbol "/"; return (div) }
+-- >
+-- >  addop   =   do{ symbol "+"; return (+) }
+-- >          <|> do{ symbol "-"; return (-) }
+chainl1 :: Parsec c e s a -> Parsec c e s (a -> a -> a) -> Parsec c e s a
+chainl1 (Parsec elem) (Parsec sep) = Parsec $ \e p s -> case elem e p s of
+  STR# s r -> case r of
+    Ok# p a -> go e p s a
+    x -> STR# s x
+  where
+    go e p s x = case sep e p s of
+      STR# s r -> case r of
+        Ok# p f -> case elem e p s of
+          STR# s r -> case r of
+            Ok# p y -> go e p s $! f x y
+            Fail# -> STR# s $# Ok# p x
+            Err# e -> STR# s $# Err# e
+        Fail# -> STR# s $# Ok# p x
+        Err# e -> STR# s $# Err# e
+{-# INLINE chainl1 #-}
 
--- chainl1 :: Parsec c e s a -> Parsec c e s (a -> a -> a) -> Parsec c e s a
--- chainl1 (Parsec elem) (Parsec sep) = Parsec $ \e ix s -> case elem e ix s of
---   Ok# p i u a -> go e ix s a
---   x -> x
---   where
---     go e ix s x = case sep e ix s of
---       Ok# p i u f -> case elem e ix s of
---         Ok# p i u y -> go e ix s $! f x y
---         Fail# -> Ok# p i u x
---         Err# e -> Err# e
---       Fail# -> Ok# p i u x
---       Err# e -> Err# e
--- {-# INLINE chainl1 #-}
+-- | @chainr1 p op x@ parses /one/ or more occurrences of |p|,
+-- separated by @op@ Returns a value obtained by a /right/ associative
+-- application of all functions returned by @op@ to the values returned
+-- by @p@.
+chainr1 :: Parsec c e s a -> Parsec c e s (a -> a -> a) -> Parsec c e s a
+chainr1 (Parsec elem) (Parsec sep) = Parsec start
+  where
+    start e p s = case elem e p s of
+      STR# s r ->
+        case r of
+          Ok# p x -> go e p s x
+          x -> STR# s x
 
--- chainr1 :: Parsec c e s a -> Parsec c e s (a -> a -> a) -> Parsec c e s a
--- chainr1 (Parsec elem) (Parsec sep) = Parsec start
---   where
---     start e ix s = case elem e ix s of
---       Ok# p i u x -> go e ix s x
---       x -> x
-
---     go e ix s x = case sep e ix s of
---       Ok# p i u f -> case start e ix s of
---         Ok# p i u y -> let !b' = f x y in Ok# p i u b'
---         Fail# -> Ok# p i u x
---         Err# e -> Err# e
---       Fail# -> Ok# p i u x
---       Err# e -> Err# e
--- {-# INLINE chainr1 #-}
+    go e p s x = case sep e p s of
+      STR# s r -> case r of
+        Ok# p f -> case start e p s of
+          STR# s r ->
+            STR# s $# case r of
+              Ok# p y -> let !b' = f x y in Ok# p b'
+              Fail# -> Ok# p x
+              Err# e -> Err# e
+        Fail# -> STR# s $# Ok# p x
+        Err# e -> STR# s $# Err# e
+{-# INLINE chainr1 #-}
