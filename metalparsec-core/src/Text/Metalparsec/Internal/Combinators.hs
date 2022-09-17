@@ -131,10 +131,10 @@ eof = parser# $ \(Env# _ l) p@(Ix# _ i) -> case l ==# i of
   1# -> Ok# p ()
   _ -> Fail#
 
--- Fail the parser
 fail :: Parsec c e s a
 fail = parser# $ \_ _ -> Fail#
 
+-- | Return a slice consumed by a parser.
 slice :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e (Chunk.ChunkSlice chunk)
 slice (Parsec f) = Parsec $ \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
   STR# s r ->

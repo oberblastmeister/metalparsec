@@ -94,6 +94,7 @@ text (UnsafeText# bs# off# len#) = Parsec $ \(Env# c l) (Ix# o i) s ->
         _ -> Fail#
     )
 
+-- | Parse any UTF-8-encoded `Char`.
 anyChar :: ByteChunk c => Parsec c e s Char
 anyChar = Parsec $ \(Env# c l) (Ix# o i) s ->
   STR#
@@ -140,6 +141,8 @@ anyChar_ = Parsec $ \(Env# c l) (Ix# o i) s ->
     )
 {-# INLINE anyChar_ #-}
 
+-- | Parse any `Char` in the ASCII range, fail if the next input character is not in the range.
+--   This is more efficient than `anyChar` if we are only working with ASCII.
 anyCharAscii :: ByteChunk s => Parsec s u e Char
 anyCharAscii = Parsec $ \(Env# c l) (Ix# o i) s ->
   STR#
@@ -152,6 +155,12 @@ anyCharAscii = Parsec $ \(Env# c l) (Ix# o i) s ->
             _ -> Fail#
     )
 {-# INLINE anyCharAscii #-}
+
+-- | Skip any `Char` in the ASCII range. More efficient than `anyChar_` if we're working only with
+--   ASCII.
+anyCharASCII_ :: ByteChunk c => Parsec c u e ()
+anyCharASCII_ = () <$ anyCharAscii
+{-# INLINE anyCharASCII_ #-}
 
 -- | Parse a UTF-8 `Char` for which a predicate holds.
 satisfyChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e Char
