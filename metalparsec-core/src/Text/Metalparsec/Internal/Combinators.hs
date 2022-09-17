@@ -57,12 +57,9 @@ ensureLen (I# len) = Parsec $ \(Env# _ l) p@(Ix# _ i) s ->
 cut :: Parsec c e s a -> e -> Parsec c e s a
 cut (Parsec f) er = Parsec $ \e ix s -> case f e ix s of
   STR# s r ->
-    STR#
-      s
-      ( case r of
-          Fail# -> Err# er
-          x -> x
-      )
+    STR# s $# case r of
+      Fail# -> Err# er
+      x -> x
 
 -- | Convert a parsing failure to a `Maybe`. If possible, use `withOption` instead.
 optional :: Parsec c e s a -> Parsec c e s (Maybe a)

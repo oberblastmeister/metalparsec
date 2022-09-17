@@ -61,6 +61,7 @@ common common-options
     MagicHash,
     UnboxedTuples,
     RoleAnnotations,
+    TypeInType,
   ghc-options:
     -Wall
     -Wincomplete-record-updates

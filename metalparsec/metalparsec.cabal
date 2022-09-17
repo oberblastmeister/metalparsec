@@ -61,6 +61,7 @@ common common-options
     MagicHash,
     UnboxedTuples,
     RoleAnnotations,
+    TypeInType,
   ghc-options:
     -Wall
     -Wincomplete-record-updates
@@ -125,7 +126,6 @@ benchmark bench
   hs-source-dirs: bench
   main-is: Main.hs
   default-extensions:
-    BlockArguments
     TemplateHaskell
   other-modules:
     Util
