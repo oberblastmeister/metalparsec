@@ -1,5 +1,5 @@
 cabal-version:      3.6
-name:               metalparsec
+name:               metalparsec-stream
 version:            0.1.0.0
 synopsis: Fast parser combinators
 description:
@@ -77,15 +77,19 @@ common common-options
       -Wno-ambiguous-fields
   build-depends:
     base >= 4.11 && <5,
+    text >= 2.0,
+    bytestring,
+    vector,
+    vector-stream,
+    containers,
+    unordered-containers,
     metalparsec-core,
-    metalparsec-th,
-    metalparsec-stream,
 
 library
   import: common-options
   hs-source-dirs: src
   exposed-modules:
-    Lib
+    Text.Metalparsec.Stream
   ghc-options: -O2
   -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
   -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
@@ -111,51 +115,48 @@ common rtsopts
 --     -- QuickCheck
 --     -- quickcheck-instances
 
-benchmark bench
-  import: common-options, rtsopts
-  type: exitcode-stdio-1.0
-  hs-source-dirs: bench
-  main-is: Main.hs
-  default-extensions:
-    BlockArguments
-    TemplateHaskell
-  other-modules:
-    Util
-    Simple
-      Simple.Attoparsec
-      Simple.FPBasic
-      Simple.FPStateful
-      Simple.Megaparsec
-      Simple.MetalparsecTH
-      Simple.Metalparsec
-    -- Expr
-    --   Expr.Metalparsec
-    --   Expr.Common
-    -- Json.Metalparsec
-    -- Json.Attoparsec
-    -- Json.Common
-    -- Javascript
-    --   Javascript.Common
-    --   -- Javascript.Attoparsec
-    --   -- Javascript.Attoparsec.Extended
-    --   Javascript.Metalparsec
-    --   Javascript.Metalparsec.Extended
-      -- Javascript.MetalparsecTH
-  build-depends:
-    bytestring,
-    text >= 2.0,
-    metalparsec-core,
-    metalparsec-th,
-    attoparsec,
-    megaparsec,
-    flatparse,
-    gauge,
-    containers,
-    unordered-containers,
-    vector,
-    scientific,
-    deepseq,
-    parser-combinators,
-  ghc-options:
-    -Wno-incomplete-patterns
-    -O2
+-- benchmark bench
+--   import: common-options, rtsopts
+--   type: exitcode-stdio-1.0
+--   hs-source-dirs: bench
+--   main-is: Main.hs
+--   default-extensions:
+--     BlockArguments
+--     TemplateHaskell
+--   other-modules:
+--     Util
+--     Simple
+--       Simple.Attoparsec
+--       Simple.FPBasic
+--       Simple.FPStateful
+--       Simple.Megaparsec
+--       Simple.MetalparsecTH
+--       Simple.Metalparsec
+--     Expr
+--       Expr.Metalparsec
+--       Expr.Common
+--     Json.Metalparsec
+--     Json.Attoparsec
+--     Json.Common
+--     Javascript
+--       Javascript.Common
+--       -- Javascript.Attoparsec
+--       -- Javascript.Attoparsec.Extended
+--       Javascript.Metalparsec
+--       Javascript.Metalparsec.Extended
+--       -- Javascript.MetalparsecTH
+--   build-depends:
+--     metalparsec,
+--     attoparsec,
+--     megaparsec,
+--     flatparse,
+--     gauge,
+--     containers,
+--     unordered-containers,
+--     vector,
+--     scientific,
+--     deepseq,
+--     parser-combinators,
+--   ghc-options:
+--     -Wno-incomplete-patterns
+--     -O2

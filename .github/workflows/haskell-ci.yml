@@ -48,17 +48,42 @@ jobs:
             compilerVersion: 8.10.7
             setup-method: ghcup
             allow-failure: false
+          - compiler: ghc-8.8.4
+            compilerKind: ghc
+            compilerVersion: 8.8.4
+            setup-method: hvr-ppa
+            allow-failure: false
+          - compiler: ghc-8.6.5
+            compilerKind: ghc
+            compilerVersion: 8.6.5
+            setup-method: hvr-ppa
+            allow-failure: false
+          - compiler: ghc-8.4.4
+            compilerKind: ghc
+            compilerVersion: 8.4.4
+            setup-method: hvr-ppa
+            allow-failure: false
       fail-fast: false
     steps:
       - name: apt
         run: |
           apt-get update
           apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common libtinfo5
-          mkdir -p "$HOME/.ghcup/bin"
-          curl -sL https://downloads.haskell.org/ghcup/0.1.18.0/x86_64-linux-ghcup-0.1.18.0 > "$HOME/.ghcup/bin/ghcup"
-          chmod a+x "$HOME/.ghcup/bin/ghcup"
-          "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER" || (cat "$HOME"/.ghcup/logs/*.* && false)
-          "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
+          if [ "${{ matrix.setup-method }}" = ghcup ]; then
+            mkdir -p "$HOME/.ghcup/bin"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.18.0/x86_64-linux-ghcup-0.1.18.0 > "$HOME/.ghcup/bin/ghcup"
+            chmod a+x "$HOME/.ghcup/bin/ghcup"
+            "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER" || (cat "$HOME"/.ghcup/logs/*.* && false)
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
+          else
+            apt-add-repository -y 'ppa:hvr/ghc'
+            apt-get update
+            apt-get install -y "$HCNAME"
+            mkdir -p "$HOME/.ghcup/bin"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.18.0/x86_64-linux-ghcup-0.1.18.0 > "$HOME/.ghcup/bin/ghcup"
+            chmod a+x "$HOME/.ghcup/bin/ghcup"
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
+          fi
         env:
           HCKIND: ${{ matrix.compilerKind }}
           HCNAME: ${{ matrix.compiler }}
@@ -70,11 +95,20 @@ jobs:
           echo "CABAL_DIR=$HOME/.cabal" >> "$GITHUB_ENV"
           echo "CABAL_CONFIG=$HOME/.cabal/config" >> "$GITHUB_ENV"
           HCDIR=/opt/$HCKIND/$HCVER
-          HC=$HOME/.ghcup/bin/$HCKIND-$HCVER
-          echo "HC=$HC" >> "$GITHUB_ENV"
-          echo "HCPKG=$HOME/.ghcup/bin/$HCKIND-pkg-$HCVER" >> "$GITHUB_ENV"
-          echo "HADDOCK=$HOME/.ghcup/bin/haddock-$HCVER" >> "$GITHUB_ENV"
-          echo "CABAL=$HOME/.ghcup/bin/cabal-3.6.2.0 -vnormal+nowrap" >> "$GITHUB_ENV"
+          if [ "${{ matrix.setup-method }}" = ghcup ]; then
+            HC=$HOME/.ghcup/bin/$HCKIND-$HCVER
+            echo "HC=$HC" >> "$GITHUB_ENV"
+            echo "HCPKG=$HOME/.ghcup/bin/$HCKIND-pkg-$HCVER" >> "$GITHUB_ENV"
+            echo "HADDOCK=$HOME/.ghcup/bin/haddock-$HCVER" >> "$GITHUB_ENV"
+            echo "CABAL=$HOME/.ghcup/bin/cabal-3.6.2.0 -vnormal+nowrap" >> "$GITHUB_ENV"
+          else
+            HC=$HCDIR/bin/$HCKIND
+            echo "HC=$HC" >> "$GITHUB_ENV"
+            echo "HCPKG=$HCDIR/bin/$HCKIND-pkg" >> "$GITHUB_ENV"
+            echo "HADDOCK=$HCDIR/bin/haddock" >> "$GITHUB_ENV"
+            echo "CABAL=$HOME/.ghcup/bin/cabal-3.6.2.0 -vnormal+nowrap" >> "$GITHUB_ENV"
+          fi
+
           HCNUMVER=$(${HC} --numeric-version|perl -ne '/^(\d+)\.(\d+)\.(\d+)(\.(\d+))?$/; print(10000 * $1 + 100 * $2 + ($3 == 0 ? $5 != 1 : $3))')
           echo "HCNUMVER=$HCNUMVER" >> "$GITHUB_ENV"
           echo "ARG_TESTS=--enable-tests" >> "$GITHUB_ENV"
@@ -138,6 +172,7 @@ jobs:
         run: |
           touch cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/metalparsec-core" >> cabal.project
+          echo "packages: $GITHUB_WORKSPACE/source/metalparsec-stream" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/metalparsec" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/metalparsec-th" >> cabal.project
           cat cabal.project
@@ -153,6 +188,8 @@ jobs:
         run: |
           PKGDIR_metalparsec_core="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-core-[0-9.]*')"
           echo "PKGDIR_metalparsec_core=${PKGDIR_metalparsec_core}" >> "$GITHUB_ENV"
+          PKGDIR_metalparsec_stream="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-stream-[0-9.]*')"
+          echo "PKGDIR_metalparsec_stream=${PKGDIR_metalparsec_stream}" >> "$GITHUB_ENV"
           PKGDIR_metalparsec="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-[0-9.]*')"
           echo "PKGDIR_metalparsec=${PKGDIR_metalparsec}" >> "$GITHUB_ENV"
           PKGDIR_metalparsec_th="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-th-[0-9.]*')"
@@ -161,9 +198,12 @@ jobs:
           touch cabal.project
           touch cabal.project.local
           echo "packages: ${PKGDIR_metalparsec_core}" >> cabal.project
+          echo "packages: ${PKGDIR_metalparsec_stream}" >> cabal.project
           echo "packages: ${PKGDIR_metalparsec}" >> cabal.project
           echo "packages: ${PKGDIR_metalparsec_th}" >> cabal.project
           echo "package metalparsec-core" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
+          echo "package metalparsec-stream" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           echo "package metalparsec" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
@@ -171,7 +211,7 @@ jobs:
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           cat >> cabal.project <<EOF
           EOF
-          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(metalparsec|metalparsec-core|metalparsec-th|text)$/; }' >> cabal.project.local
+          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(metalparsec|metalparsec-core|metalparsec-stream|metalparsec-th|text)$/; }' >> cabal.project.local
           cat cabal.project
           cat cabal.project.local
       - name: dump install plan
@@ -200,6 +240,8 @@ jobs:
       - name: cabal check
         run: |
           cd ${PKGDIR_metalparsec_core} || false
+          ${CABAL} -vnormal check
+          cd ${PKGDIR_metalparsec_stream} || false
           ${CABAL} -vnormal check
           cd ${PKGDIR_metalparsec} || false
           ${CABAL} -vnormal check

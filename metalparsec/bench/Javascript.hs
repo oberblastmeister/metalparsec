@@ -2,15 +2,15 @@ module Javascript where
 
 import Control.DeepSeq (NFData)
 import Data.ByteString (ByteString)
-import Data.ByteString qualified
+import qualified Data.ByteString
 import Data.Text (Text)
-import Data.Text.IO qualified
+import qualified Data.Text.IO
 import Gauge.Main
--- import Javascript.Attoparsec qualified as Attoparsec
-import Javascript.Metalparsec qualified as Metalparsec
+-- import qualified Javascript.Attoparsec as Attoparsec
+import qualified Javascript.Metalparsec as Metalparsec
 import Util
 
--- import Javascript.MetalparsecTH qualified as MetalparsecTH
+-- import qualified Javascript.MetalparsecTH as MetalparsecTH
 
 main :: Benchmark
 main =

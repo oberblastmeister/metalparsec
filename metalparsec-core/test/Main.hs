@@ -1,10 +1,13 @@
 import Data.Functor (($>))
 import Data.Text (Text)
+import qualified Data.Text as T
 import Test.Tasty
 import Test.Tasty.HUnit
 import Text.Metalparsec
 
-type Parser = Parsec Text () Text
+type Parser' = Parsec Text Text
+
+type Parser = Parser' ()
 
 main :: IO ()
 main = defaultMain tests
@@ -14,9 +17,9 @@ tests =
   testGroup
     "tests"
     [ testCase "alt" $ do
-        parse alt "first" @?= OK "first"
-        parse alt "second" @?= OK "second"
-        parse alt "third" @?= OK "third"
+        parse alt "first" @?= Ok "first"
+        parse alt "second" @?= Ok "second"
+        parse alt "third" @?= Ok "third"
         parse alt "fourth" @?= Fail
     ]
 
@@ -27,4 +30,4 @@ alt :: Parser Text
 alt = text' "first" <|> text' "second" <|> text' "third"
 
 parse :: Parser a -> Text -> Result Text a
-parse p = evalParser p ()
+parse p = runParser p ()

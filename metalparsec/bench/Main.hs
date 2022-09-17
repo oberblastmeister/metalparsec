@@ -1,17 +1,17 @@
 module Main where
 
-import Data.Text.IO qualified as TIO
+import qualified Data.Text.IO as TIO
 import Gauge.Main
-import Javascript qualified
-import Simple qualified
-import Util qualified
+-- import qualified Javascript
+import qualified Simple
+import qualified Util
 
 main :: IO ()
 main = do
-  text <- TIO.readFile "bench/inputs/testing.js"
-  print text
-  print $ Util.runMetal text
+  -- text <- TIO.readFile "bench/inputs/testing.js"
+  -- print text
+  -- print $ Util.runMetal text
   defaultMain
-    [ Simple.main,
-      Javascript.main
+    [ Simple.main
+      -- Javascript.main
     ]

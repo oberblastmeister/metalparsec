@@ -4,7 +4,7 @@
 
 module Expr.Metalparsec where
 
-import Data.ByteString qualified as BS
+import qualified Data.ByteString as BS
 import Data.Char (isSpace)
 import Data.Function ((&))
 import Data.Text (Text)
@@ -55,5 +55,5 @@ import Text.Megaparsec
 --   content <- BS.readFile filepath
 --   pure $
 --     F.runParser (expr <* F.eof) content & \case
---       F.OK ans _ -> Just ans
+--       F.Ok ans _ -> Just ans
 --       _ -> Nothing

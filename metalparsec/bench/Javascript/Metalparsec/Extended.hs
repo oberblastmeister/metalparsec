@@ -11,9 +11,9 @@ import Control.Monad.Combinators (choice)
 import Data.Functor (void, ($>))
 import Data.List (foldl')
 import Data.Text (Text)
-import Text.Metalparsec hiding (chainPre, chainPost)
+import Text.Metalparsec hiding (chainPost, chainPre)
 
-type Parser = Parsec Text () Text
+type Parser = Parsec Text Text '[]
 
 token :: Text -> Parser ()
 token = text
@@ -26,7 +26,6 @@ between o c p = o *> p <* c
 
 match :: (Monad m, Eq a) => [a] -> m a -> (a -> m b) -> m b -> m b
 match xs p f def = p >>= (\x -> if elem x xs then f x else def)
-
 
 maybeP :: Parser a -> Parser (Maybe a)
 maybeP = optional

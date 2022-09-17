@@ -2,17 +2,16 @@
 
 module Simple where
 
-import Data.ByteString.Char8 qualified as B
-import Data.Primitive.ByteArray
+import qualified Data.ByteString.Char8 as B
 import Data.String (fromString)
-import Data.Text qualified as T
+import qualified Data.Text as T
 import Gauge
-import Simple.Attoparsec qualified as Attoparsec
-import Simple.FPBasic qualified as FPBasic
-import Simple.FPStateful qualified as FPStateful
-import Simple.Megaparsec qualified as Megaparsec
-import Simple.Metalparsec qualified as Metalparsec
-import Simple.MetalparsecTH qualified as MetalparsecTH
+import qualified Simple.Attoparsec as Attoparsec
+import qualified Simple.FPBasic as FPBasic
+import qualified Simple.FPStateful as FPStateful
+import qualified Simple.Megaparsec as Megaparsec
+import qualified Simple.Metalparsec as Metalparsec
+import qualified Simple.MetalparsecTH as MetalparsecTH
 
 sexpInp :: String
 sexpInp =

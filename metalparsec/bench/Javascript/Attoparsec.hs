@@ -3,7 +3,7 @@ module Javascript.Attoparsec where
 import Data.Char (digitToInt, isSpace, isUpper)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
-import Data.Text qualified as T
+import qualified Data.Text as T
 import Javascript.Attoparsec.Extended
 import Javascript.Common
 import Text.Read (readMaybe)

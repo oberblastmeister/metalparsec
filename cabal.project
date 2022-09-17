@@ -1,12 +1,7 @@
 packages: */*.cabal
-package metalparsec
-    ghc-options: -j
-package metalparsec-th
-    ghc-options: -j
 package metalparsec-core
     ghc-options: -j
 
 jobs: $ncpus
 tests: True
-benchmarks: True
 test-show-details: direct

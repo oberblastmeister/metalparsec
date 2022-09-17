@@ -15,7 +15,7 @@ maintainer: littlebubu.shu@gmail.com
 copyright: 2022 Brian Shu
 category: Parsing
 extra-source-files: CHANGELOG.md
-tested-with: GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.4, GHC == 9.4.2
+tested-with: GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.4, GHC == 9.4.2
 
 common common-options
   default-extensions:
@@ -40,7 +40,6 @@ common common-options
     ConstraintKinds,
     TypeApplications,
     KindSignatures,
-    StandaloneKindSignatures,
     DeriveFoldable,
     DeriveFunctor,
     DeriveGeneric,
@@ -58,12 +57,11 @@ common common-options
     ExistentialQuantification,
     TypeOperators,
     OverloadedLabels,
-    ImportQualifiedPost,
     ImpredicativeTypes,
     MagicHash,
     UnboxedTuples,
-    UnliftedNewtypes,
     RoleAnnotations,
+    TypeInType,
   ghc-options:
     -Wall
     -Wincomplete-record-updates
@@ -78,13 +76,10 @@ common common-options
     ghc-options:
       -Wno-ambiguous-fields
   build-depends:
-    base >= 4.12 && <5,
+    base >= 4.11 && <5,
     primitive,
     text >= 2.0,
     bytestring,
-    vector,
-    vector-stream,
-    template-haskell,
     deepseq,
     mtl,
   if impl(ghc < 9.2)
@@ -106,9 +101,9 @@ library
         Text.Metalparsec.Internal.Compat.Word
         Text.Metalparsec.Internal.Chunk
         Text.Metalparsec.Internal.Utf8
-        Text.Metalparsec.Internal.PureMutableByteArray
+        Text.Metalparsec.Internal.UnsafePureMutableByteArray
         Text.Metalparsec.Internal.ByteArrayExt
-        Text.Metalparsec.Internal.UnboxedNumerics
+        Text.Metalparsec.Internal.SizedCompat
         Text.Metalparsec.Internal.Combinators
         Text.Metalparsec.Internal.Text
         Text.Metalparsec.Internal.C
