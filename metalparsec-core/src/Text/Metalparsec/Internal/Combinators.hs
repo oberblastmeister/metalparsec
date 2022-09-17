@@ -138,7 +138,7 @@ slice (Parsec f) = Parsec \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
     STR#
       s
       ( case r of
-          Ok# p@(Ix# _ i) _a -> Ok# p (Chunk.convertSlice#  @chunk (# c, i0, i -# i0 #))
+          Ok# p@(Ix# _ i) _a -> Ok# p (Chunk.convertSlice# @chunk (# c, i0, i -# i0 #))
           x -> unsafeCoerceRes# x
       )
 

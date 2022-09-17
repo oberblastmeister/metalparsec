@@ -28,7 +28,6 @@ import GHC.Word (Word8 (..))
 import qualified Text.Metalparsec.Internal.C as C
 import qualified Text.Metalparsec.Internal.SizedCompat as S
 import Text.Metalparsec.Internal.Util (accursedUnutterablePerformIO)
-import qualified Text.Metalparsec.Internal.SizedCompat as S
 
 type UnsafePureMutableByteArray# = MutableByteArray# RealWorld
 
