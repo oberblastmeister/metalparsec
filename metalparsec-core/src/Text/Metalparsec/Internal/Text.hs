@@ -57,18 +57,18 @@ unsafeSatisfyAscii f = Parsec $ \(Env# c l) (Ix# o i) s ->
     )
 {-# INLINE unsafeSatisfyAscii #-}
 
-char :: ByteChunk c => Char -> Parsec c e s ()
+char :: ByteChunk c => Char -> Parsec c s e ()
 char = text . T.singleton
 {-# INLINE char #-}
 
-asciiChar :: (HasCallStack, ByteChunk c) => Char -> Parsec c e s ()
+asciiChar :: (HasCallStack, ByteChunk c) => Char -> Parsec c s e ()
 asciiChar c =
   if c < '\x7f'
     then unsafeAsciiChar c
     else error "Text.Metalparsec.Internal.Text: not ascii char"
 {-# INLINE asciiChar #-}
 
-unsafeAsciiChar :: ByteChunk c => Char -> Parsec c e s ()
+unsafeAsciiChar :: ByteChunk c => Char -> Parsec c s e ()
 unsafeAsciiChar (C# ch) =
   Parsec $ \(Env# c l) (Ix# o i) s ->
     STR#
@@ -95,7 +95,7 @@ text (UnsafeText# bs# off# len#) = Parsec $ \(Env# c l) (Ix# o i) s ->
     )
 
 -- | Parse any UTF-8-encoded `Char`.
-anyChar :: ByteChunk c => Parsec c e s Char
+anyChar :: ByteChunk c => Parsec c s e Char
 anyChar = Parsec $ \(Env# c l) (Ix# o i) s ->
   STR#
     s
@@ -123,7 +123,7 @@ anyChar = Parsec $ \(Env# c l) (Ix# o i) s ->
 {-# INLINE anyChar #-}
 
 -- | Skip any UTF-8-encoded `Char`.
-anyChar_ :: ByteChunk c => Parsec c e s ()
+anyChar_ :: ByteChunk c => Parsec c s e ()
 anyChar_ = Parsec $ \(Env# c l) (Ix# o i) s ->
   STR#
     s
@@ -184,7 +184,7 @@ isAsciiDigit c = '0' <= c && c <= '9'
 
 -- | Does not check if eof has been hit
 -- This can also result in invalid utf8.
-unsafeByte :: ByteChunk c => Word8 -> Parsec c e s ()
+unsafeByte :: ByteChunk c => Word8 -> Parsec c s e ()
 unsafeByte (S.W8# ch) = Parsec $ \(Env# c _) (Ix# o i) s ->
   STR#
     s

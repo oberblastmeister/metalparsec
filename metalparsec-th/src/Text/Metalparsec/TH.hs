@@ -26,25 +26,25 @@ type Up = Code Q
 type Up a = Q (TExp a)
 #endif
 
-string :: ByteChunk c => String -> Up (Parsec c e s ())
+string :: ByteChunk c => String -> Up (Parsec c s e ())
 string = bytes . Utf8.textBytes . T.pack
 
 string' :: String -> Q Exp
 string' = bytes' . Utf8.textBytes . T.pack
 
-char :: (ByteChunk c) => Char -> Up (Parsec c e s ())
+char :: (ByteChunk c) => Char -> Up (Parsec c s e ())
 char = bytes . Utf8.charBytes
 
 char' :: Char -> ExpQ
 char' = bytes' . Utf8.charBytes
 
-bytes :: ByteChunk c => [Word8] -> Up (Parsec c e s ())
+bytes :: ByteChunk c => [Word8] -> Up (Parsec c s e ())
 bytes bs = let len = length bs in [||ensureLen len *> $$(unsafeBytes bs)||]
 
 bytes' :: [Word8] -> ExpQ
 bytes' bs = let len = length bs in [|ensureLen len *> $(unsafeBytes' bs)|]
 
-unsafeBytes ::  (ByteChunk c) => [Word8] -> Up (Parsec c e s ())
+unsafeBytes ::  (ByteChunk c) => [Word8] -> Up (Parsec c s e ())
 unsafeBytes = go
   where
     go (b : bs) = [||Text.Unsafe.unsafeByte b *> $$(go bs)||]

@@ -1,11 +1,10 @@
 import Data.Functor (($>))
 import Data.Text (Text)
-import qualified Data.Text as T
 import Test.Tasty
 import Test.Tasty.HUnit
 import Text.Metalparsec
 
-type Parser' = Parsec Text Text
+type Parser' a = Parsec Text a Text
 
 type Parser = Parser' ()
 

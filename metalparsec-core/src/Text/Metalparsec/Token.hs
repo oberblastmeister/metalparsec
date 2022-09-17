@@ -12,7 +12,7 @@ import qualified Text.Metalparsec.Internal.Combinators as Combinators
 import Prelude hiding (fail)
 
 -- -- | Unsafely read a concrete byte from the input. It's not checked that the input has
--- unsafeScan1 :: Chunk.TokenChunk s => Chunk.TokenTag s -> Parsec c e s ()
+-- unsafeScan1 :: Chunk.TokenChunk s => Chunk.TokenTag s -> Parsec c s e ()
 -- unsafeScan1 t =
 --   Parsec
 --     ( \s _l i p u ->
@@ -22,18 +22,18 @@ import Prelude hiding (fail)
 --     )
 -- {-# INLINE unsafeScan1 #-}
 
--- scan1 :: Chunk.TokenChunk s => Chunk.TokenTag s -> Parsec c e s ()
+-- scan1 :: Chunk.TokenChunk s => Chunk.TokenTag s -> Parsec c s e ()
 -- scan1 t = Combinators.ensureLen 1 *> unsafeScan1 t
 -- {-# INLINE scan1 #-}
 
--- any :: Chunk.TokenChunk s => Parsec c e s (Chunk.Token s)
+-- any :: Chunk.TokenChunk s => Parsec c s e (Chunk.Token s)
 -- any = Parsec $ \e ix s -> case i ==# l of
 --   1# -> Fail#
 --   _ -> case Chunk.unsafeIndex# s i of
 --     t -> Ok# (p +# Chunk.tokenOffset# t) (i +# 1#) u t
 -- {-# INLINE any #-}
 
--- satisfy :: Chunk.TokenChunk s => (Chunk.TokenTag s -> Bool) -> Parsec c e s (Chunk.TokenTag s)
+-- satisfy :: Chunk.TokenChunk s => (Chunk.TokenTag s -> Bool) -> Parsec c s e (Chunk.TokenTag s)
 -- satisfy f = Parsec $ \e ix s -> case i ==# l of
 --   1# -> Fail#
 --   _ -> case Chunk.unsafeIndex# s i of
