@@ -75,7 +75,7 @@ common common-options
     ghc-options:
       -Wno-ambiguous-fields
   build-depends:
-    base >= 4.12 && <5,
+    base >= 4.11 && <5,
     text >= 2.0,
     template-haskell,
     metalparsec-core,
