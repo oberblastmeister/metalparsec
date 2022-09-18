@@ -8,17 +8,17 @@ module Text.Metalparsec.Internal.Utf8
   )
 where
 
-import Text.Metalparsec.Internal.Compat.Word
+import qualified Data.ByteString as B
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Internal.Encoding.Utf8 as T.Internal.Encoding.Utf8
 import GHC.Exts
 import qualified GHC.Exts as Exts
-import qualified Data.ByteString as B
+import Text.Metalparsec.Internal.Compat.Word
 
 lengthByLeader :: Word8 -> Int
-lengthByLeader w = Exts.inline T.Internal.Encoding.Utf8.utf8LengthByLeader w
+lengthByLeader = Exts.inline T.Internal.Encoding.Utf8.utf8LengthByLeader
 {-# INLINE lengthByLeader #-}
 
 char2# :: Char# -> Char# -> Char#

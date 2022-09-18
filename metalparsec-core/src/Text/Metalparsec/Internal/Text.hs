@@ -4,6 +4,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word8)
 import GHC.Exts
+import qualified GHC.Exts as Exts
 import GHC.Stack (HasCallStack)
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
@@ -12,6 +13,7 @@ import Text.Metalparsec.Internal.Combinators
 import qualified Text.Metalparsec.Internal.SizedCompat as S
 import qualified Text.Metalparsec.Internal.Utf8 as Utf8
 import Text.Metalparsec.Internal.Util
+import Control.Monad (void)
 
 takeWhileChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
 takeWhileChar = manySlice . satisfyChar
@@ -59,14 +61,14 @@ unsafeSatisfyAscii f = Parsec $ \(Env# c l) (Ix# o i) s ->
 
 char :: ByteChunk c => Char -> Parsec c s e ()
 char = text . T.singleton
-{-# INLINE char #-}
+{-# INLINABLE char #-}
 
 asciiChar :: (HasCallStack, ByteChunk c) => Char -> Parsec c s e ()
 asciiChar c =
   if c < '\x7f'
-    then unsafeAsciiChar c
+    then Exts.inline unsafeAsciiChar c
     else error "Text.Metalparsec.Internal.Text: not ascii char"
-{-# INLINE asciiChar #-}
+{-# INLINEABLE asciiChar #-}
 
 unsafeAsciiChar :: ByteChunk c => Char -> Parsec c s e ()
 unsafeAsciiChar (C# ch) =
@@ -80,7 +82,7 @@ unsafeAsciiChar (C# ch) =
               1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) ()
               _ -> Fail#
       )
-{-# INLINE unsafeAsciiChar #-}
+{-# INLINEABLE unsafeAsciiChar #-}
 
 text :: ByteChunk chunk => Text -> Parsec chunk u e ()
 text (UnsafeText# bs# off# len#) = Parsec $ \(Env# c l) (Ix# o i) s ->
@@ -93,6 +95,7 @@ text (UnsafeText# bs# off# len#) = Parsec $ \(Env# c l) (Ix# o i) s ->
             _ -> Fail#
         _ -> Fail#
     )
+{-# INLINEABLE text #-}
 
 -- | Parse any UTF-8-encoded `Char`.
 anyChar :: ByteChunk c => Parsec c s e Char
@@ -120,7 +123,7 @@ anyChar = Parsec $ \(Env# c l) (Ix# o i) s ->
                             _ -> case Chunk.unsafeIndexChar8# c 3# of
                               c4 -> Ok# (Ix# (o +# 4#) (i +# 4#)) (C# (Utf8.char4# c1 c2 c3 c4))
     )
-{-# INLINE anyChar #-}
+{-# INLINEABLE anyChar #-}
 
 -- | Skip any UTF-8-encoded `Char`.
 anyChar_ :: ByteChunk c => Parsec c s e ()
@@ -139,7 +142,7 @@ anyChar_ = Parsec $ \(Env# c l) (Ix# o i) s ->
                     1# -> Ok# (Ix# (o +# len#) (i +# len#)) ()
                     _ -> Fail#
     )
-{-# INLINE anyChar_ #-}
+{-# INLINABLE anyChar_ #-}
 
 -- | Parse any `Char` in the ASCII range, fail if the next input character is not in the range.
 --   This is more efficient than `anyChar` if we are only working with ASCII.
@@ -154,13 +157,13 @@ anyCharAscii = Parsec $ \(Env# c l) (Ix# o i) s ->
             1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) (C# c)
             _ -> Fail#
     )
-{-# INLINE anyCharAscii #-}
+{-# INLINABLE anyCharAscii #-}
 
 -- | Skip any `Char` in the ASCII range. More efficient than `anyChar_` if we're working only with
 --   ASCII.
 anyCharASCII_ :: ByteChunk c => Parsec c u e ()
-anyCharASCII_ = () <$ anyCharAscii
-{-# INLINE anyCharASCII_ #-}
+anyCharASCII_ = void anyCharAscii
+{-# INLINABLE anyCharASCII_ #-}
 
 -- | Parse a UTF-8 `Char` for which a predicate holds.
 satisfyChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e Char
