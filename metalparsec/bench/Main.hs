@@ -1,8 +1,9 @@
 module Main where
 
 import qualified Data.Text.IO as TIO
+import qualified Expr
 import Gauge.Main
--- import qualified Javascript
+import qualified Javascript
 import qualified Simple
 import qualified Util
 
@@ -12,6 +13,7 @@ main = do
   -- print text
   -- print $ Util.runMetal text
   defaultMain
-    [ Simple.main
-      -- Javascript.main
+    [ Simple.main,
+      Javascript.main,
+      Expr.main
     ]

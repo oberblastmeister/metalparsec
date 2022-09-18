@@ -13,7 +13,7 @@ import Data.List (foldl')
 import Data.Text (Text)
 import Text.Metalparsec hiding (chainPost, chainPre)
 
-type Parser = Parsec Text Text '[]
+type Parser = Parsec Text () Text 
 
 token :: Text -> Parser ()
 token = text

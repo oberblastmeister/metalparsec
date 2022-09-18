@@ -153,10 +153,10 @@ prefixExpr =
       <|> operator "!" $> JSNot
 
 prefix :: Parser JSExpr' -> Parser JSUnaryOp -> Parser JSExpr'
-prefix = flip $ chainPre JSUnary
+prefix e op = chainPre (do o <- op; pure $ JSUnary o) e
 
 postfix :: Parser JSExpr' -> Parser JSUnaryOp -> Parser JSExpr'
-postfix = chainPost (flip JSUnary)
+postfix e op = chainPost e $ do o <- op; pure $ JSUnary o
 
 infixL :: Parser JSExpr' -> Parser JSBinOp -> Parser JSExpr'
 infixL p op = chainl1 p $ do o <- op; pure $ \e e' -> JSBin e o e'
