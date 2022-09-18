@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Text.Metalparsec.Internal where
@@ -22,7 +21,7 @@ newtype Parsec c s e a = Parsec
       Env# (Chunk.BaseArray# c) ->
       Ix# ->
       s ->
-      (# s, (Res# e a) #)
+      (# s, Res# e a #)
   }
 
 type Res# e a =
@@ -143,7 +142,6 @@ instance Bifunctor (Parsec s u) where
 
 instance Semigroup a => Semigroup (Parsec c s e a) where
   (<>) = liftA2 (<>)
-  {-# INLINE (<>) #-}
 
 instance Monoid a => Monoid (Parsec c s e a) where
   mempty = pure mempty
@@ -212,7 +210,7 @@ data Result e a
 instance Functor (Result e) where
   fmap f (Ok x) = Ok (f x)
   fmap _f Fail = Fail
-  fmap _f (Err e) = (Err e)
+  fmap _f (Err e) = Err e
 
 instance Applicative (Result e) where
   pure = Ok
@@ -310,7 +308,7 @@ parser# f = Parsec $ \e p s -> STR# s $# f e p
 runParser :: forall chunk s e a. Chunk chunk => Parsec chunk s e a -> s -> chunk -> Result e a
 runParser (Parsec f) s c = case Chunk.toSlice# @chunk c of
   (# s#, off#, len# #) ->
-    case (f (Env# s# len#) (Ix# 0# off#) s) of
+    case f (Env# s# len#) (Ix# 0# off#) s of
       (# _, r #) -> case r of
         Err# e -> Err e
         Fail# -> Fail

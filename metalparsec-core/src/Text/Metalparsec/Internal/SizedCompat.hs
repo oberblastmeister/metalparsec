@@ -72,7 +72,7 @@ narrowWord8# = E.narrow8Word#
 extendWord8# :: E.Word# -> Word8#
 extendWord8# w# = w#
 
-eqWord8# w1# w2# = E.eqWord# w1# w2#
+eqWord8# = E.eqWord#
 wordToWord8# = narrowWord8#
 word8ToWord# = extendWord8#
 indexWord8Array# bs# i# = wordToWord8# (E.indexWord8Array# bs# i#)
