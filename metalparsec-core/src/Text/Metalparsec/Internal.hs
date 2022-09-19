@@ -54,6 +54,10 @@ pattern Env# s l m = (# s, l, m #)
 pattern Ix# :: Int# -> Int# -> Ix#
 pattern Ix# i# i## = (# i#, i## #)
 
+plusIx# :: Ix# -> Int# -> Ix#
+plusIx# (Ix# o i) n = Ix# (o +# n) (i +# n)
+{-# INLINE plusIx# #-}
+
 type ST# s a = State# s -> (# State# s, a #)
 
 -- | Contains return value and a pointer to the rest of the input buffer.

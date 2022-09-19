@@ -62,6 +62,7 @@ common common-options
     UnboxedTuples,
     RoleAnnotations,
     TypeInType,
+    PatternGuards,
   ghc-options:
     -Wall
     -Wincomplete-record-updates

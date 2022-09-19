@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternGuards #-}
-
 module Text.Metalparsec.Internal.Text where
 
 import Control.Monad (void)
@@ -12,40 +10,19 @@ import GHC.Stack (HasCallStack)
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import qualified Text.Metalparsec.Internal.Chunk as Chunk
-import Text.Metalparsec.Internal.Combinators
 import qualified Text.Metalparsec.Internal.SizedCompat as S
 import qualified Text.Metalparsec.Internal.Utf8 as Utf8
 import Text.Metalparsec.Internal.Util
 
-takeWhileChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-takeWhileChar = manySlice . satisfyChar
-{-# INLINE takeWhileChar #-}
-
--- -- -- this is wrong
--- -- takeWhileChar1 :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
--- -- takeWhileChar1 f = satisfyChar f *> takeWhileChar f
--- -- {-# INLINE takeWhileChar1 #-}
-
-takeWhileAscii :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-takeWhileAscii = manySlice . satisfyAscii
-{-# INLINE takeWhileAscii #-}
-
--- -- takeWhileAscii1 :: forall chunk u e. ByteChunk chunk => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
--- -- takeWhileAscii1 f = satisfyAscii f *> takeWhileAscii f
--- -- {-# INLINE takeWhileAscii1 #-}
-
 -- | Parse an ASCII `Char` for which a predicate holds.
 satisfyAscii :: forall chunk u e. ByteChunk chunk => (Char -> Bool) -> Parsec chunk u e Char
 satisfyAscii f = Parsec $ \(Env# c l _) (Ix# o i) s ->
-  STR#
-    s
-    ( case l ==# i of
-        1# -> Fail#
-        _ -> case Chunk.unsafeIndexChar8# c i of
-          c -> case c `leChar#` '\x7f'# of
-            1# | f (C# c) -> Ok# (Ix# (o +# 1#) (i +# 1#)) (C# c)
-            _ -> Fail#
-    )
+  STR# s $# case l ==# i of
+    1# -> Fail#
+    _ -> case Chunk.unsafeIndexChar8# c i of
+      c -> case c `leChar#` '\x7f'# of
+        1# | f (C# c) -> Ok# (Ix# (o +# 1#) (i +# 1#)) (C# c)
+        _ -> Fail#
 {-# INLINE satisfyAscii #-}
 
 -- | The predicate must not return true for chars that are not ascii.
@@ -75,28 +52,22 @@ asciiChar c =
 unsafeAsciiChar :: ByteChunk c => Char -> Parsec c s e ()
 unsafeAsciiChar (C# ch) =
   Parsec $ \(Env# c l _) (Ix# o i) s ->
-    STR#
-      s
-      ( case l ==# i of
-          1# -> Fail#
-          _ -> case Chunk.unsafeIndexChar8# c i of
-            ch' -> case ch `eqChar#` ch' of
-              1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) ()
-              _ -> Fail#
-      )
+    STR# s $# case l ==# i of
+      1# -> Fail#
+      _ -> case Chunk.unsafeIndexChar8# c i of
+        ch' -> case ch `eqChar#` ch' of
+          1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) ()
+          _ -> Fail#
 {-# INLINEABLE unsafeAsciiChar #-}
 
 text :: ByteChunk chunk => Text -> Parsec chunk u e ()
 text (UnsafeText# bs# off# len#) = Parsec $ \(Env# c l _) (Ix# o i) s ->
-  STR#
-    s
-    ( case i +# len# <=# l of
-        1# ->
-          case Chunk.unsafeCompare# bs# off# c i len# of
-            0# -> Ok# (Ix# (o +# len#) (i +# len#)) ()
-            _ -> Fail#
+  STR# s $# case i +# len# <=# l of
+    1# ->
+      case Chunk.unsafeCompare# bs# off# c i len# of
+        0# -> Ok# (Ix# (o +# len#) (i +# len#)) ()
         _ -> Fail#
-    )
+    _ -> Fail#
 {-# INLINEABLE text #-}
 
 -- | Parse any UTF-8-encoded `Char`.
@@ -127,54 +98,90 @@ anyChar = Parsec $ \(Env# c l _) (Ix# o i) s ->
 -- | Skip any UTF-8-encoded `Char`.
 anyChar_ :: ByteChunk c => Parsec c s e ()
 anyChar_ = Parsec $ \(Env# c l _) (Ix# o i) s ->
-  STR#
-    s
-    ( case i ==# l of
-        1# -> Fail#
-        _ -> case Chunk.unsafeIndexChar8# c i of
-          c1 ->
-            case c1 `leChar#` '\x7F'# of
-              1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) ()
-              _ ->
-                case Utf8.lengthByLeader (charToWord8 (C# c1)) of
-                  I# len# -> case i +# len# <# l of
-                    1# -> Ok# (Ix# (o +# len#) (i +# len#)) ()
-                    _ -> Fail#
-    )
+  STR# s $# case i ==# l of
+    1# -> Fail#
+    _ -> case Chunk.unsafeIndexChar8# c i of
+      c1 ->
+        case c1 `leChar#` '\x7F'# of
+          1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) ()
+          _ ->
+            case Utf8.lengthByLeader (charToWord8 (C# c1)) of
+              I# len# -> case i +# len# <# l of
+                1# -> Ok# (Ix# (o +# len#) (i +# len#)) ()
+                _ -> Fail#
 {-# INLINEABLE anyChar_ #-}
 
 -- | Parse any `Char` in the ASCII range, fail if the next input character is not in the range.
---   This is more efficient than `anyChar` if we are only working with ASCII.
+-- This is more efficient than `anyChar` if we are only working with ASCII.
 anyCharAscii :: ByteChunk s => Parsec s u e Char
 anyCharAscii = Parsec $ \(Env# c l _) (Ix# o i) s ->
-  STR#
-    s
-    ( case i ==# l of
-        1# -> Fail#
-        _ -> case Chunk.unsafeIndexChar8# c i of
-          c -> case c `leChar#` '\x7F'# of
-            1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) (C# c)
-            _ -> Fail#
-    )
+  STR# s $# case i ==# l of
+    1# -> Fail#
+    _ -> case Chunk.unsafeIndexChar8# c i of
+      c -> case c `leChar#` '\x7F'# of
+        1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) (C# c)
+        _ -> Fail#
 {-# INLINEABLE anyCharAscii #-}
 
 -- | Skip any `Char` in the ASCII range. More efficient than `anyChar_` if we're working only with
---   ASCII.
-anyCharASCII_ :: ByteChunk c => Parsec c u e ()
-anyCharASCII_ = void anyCharAscii
-{-# INLINEABLE anyCharASCII_ #-}
+-- ASCII.
+anyCharAscii_ :: ByteChunk c => Parsec c u e ()
+anyCharAscii_ = void anyCharAscii
+{-# INLINEABLE anyCharAscii_ #-}
 
 -- | Parse a UTF-8 `Char` for which a predicate holds.
-satisfyChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e Char
-satisfyChar f = Parsec $ \e p s -> case runParsec# (anyChar @chunk) e p s of
+satisfy :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e Char
+satisfy f = Parsec $ \e p s -> case runParsec# (anyChar @chunk) e p s of
   STR# s r ->
-    STR#
-      s
-      ( case r of
-          Ok# p c | f c -> Ok# p c
-          _ -> Fail#
-      )
-{-# INLINE satisfyChar #-}
+    STR# s $# case r of
+      Ok# p c | f c -> Ok# p c
+      _ -> Fail#
+{-# INLINE satisfy #-}
+
+-- | This is a variant of `satisfy` which allows more optimization. We can pick four testing
+-- functions for the four cases for the possible number of bytes in the UTF-8 character. So in
+-- @fusedSatisfy f1 f2 f3 f4@, if we read a one-byte character, the result is scrutinized with
+-- @f1@, for two-bytes, with @f2@, and so on. This can result in dramatic lexing speedups.
+--
+-- For example, if we want to accept any letter, the naive solution would be to use
+-- `Data.Char.isLetter`, but this accesses a large lookup table of Unicode character classes. We
+-- can do better with @fusedSatisfy isLatinLetter isLetter isLetter isLetter@, since here the
+-- `isLatinLetter` is inlined into the UTF-8 decoding, and it probably handles a great majority of
+-- all cases without accessing the character table.
+fusedSatisfy ::
+  ByteChunk c =>
+  (Char -> Bool) ->
+  (Char -> Bool) ->
+  (Char -> Bool) ->
+  (Char -> Bool) ->
+  Parsec c u e Char
+fusedSatisfy f1 f2 f3 f4 = Parsec $ \(Env# c l _) p@(Ix# _ i) s ->
+  STR# s $# case i ==# l of
+    1# -> Fail#
+    _ -> case Chunk.unsafeIndexChar8# c i of
+      c1 -> case c1 `leChar#` '\x7f'# of
+        1#
+          | f1 (C# c1) -> Ok# (p `plusIx#` 1#) (C# c1)
+          | otherwise -> Fail#
+        _ -> case i +# 1# ==# l of
+          1# -> Fail#
+          _ -> case Chunk.unsafeIndexChar8# c (i +# 1#) of
+            c2 -> case c1 `leChar#` '\xdf'# of
+              1#
+                | let ch = C# (Utf8.char2# c1 c2), f2 ch -> Ok# (p `plusIx#` 2#) ch
+                | otherwise -> Fail#
+              _ -> case i +# 2# ==# l of
+                1# -> Fail#
+                _ -> case Chunk.unsafeIndexChar8# c (i +# 2#) of
+                  c3 -> case c1 `leChar#` '\xef'# of
+                    1#
+                      | let ch = C# (Utf8.char3# c1 c2 c3), f3 ch -> Ok# (p `plusIx#` 3#) ch
+                      | otherwise -> Fail#
+                    _ -> case Chunk.unsafeIndexChar8# c (i +# 3#) of
+                      c4
+                        | let ch = C# (Utf8.char4# c1 c2 c3 c4), f4 ch -> Ok# (p `plusIx#` 4#) ch
+                        | otherwise -> Fail#
+{-# INLINE fusedSatisfy #-}
 
 isAsciiLetter :: Char -> Bool
 isAsciiLetter c = ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')

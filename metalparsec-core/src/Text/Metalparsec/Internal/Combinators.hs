@@ -13,7 +13,8 @@ module Text.Metalparsec.Internal.Combinators
     fail,
     slice,
     rest,
-    manySlice,
+    sliceMany,
+    sliceSome,
     lookahead,
     fails,
     notFollowedBy,
@@ -39,6 +40,7 @@ where
 
 import qualified Control.Applicative as Applicative
 import GHC.Exts
+import qualified GHC.Exts as Exts
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (Chunk)
 import qualified Text.Metalparsec.Internal.Chunk as Chunk
@@ -105,7 +107,7 @@ many_ (Parsec f) = Parsec go
 
 -- | Skip a Parsec one more times.
 some_ :: Parsec c s e a -> Parsec c s e ()
-some_ pa = pa >> many_ pa
+some_ p = Exts.inline (>>) p (many_ p)
 {-# INLINE some_ #-}
 
 -- | Choose between two Parsecs. If the first Parsec fails, try the second one, but if the first one
@@ -148,9 +150,13 @@ rest :: forall chunk u e. Chunk chunk => Parsec chunk u e (Chunk.ChunkSlice chun
 rest = parser# $ \(Env# c l _) p@(Ix# _ i) -> Ok# p (Chunk.convertSlice# @chunk (# c, i, l -# i #))
 {-# INLINEABLE rest #-}
 
-manySlice :: Chunk c => Parsec c s e a -> Parsec c s e (Chunk.ChunkSlice c)
-manySlice = slice . many_
-{-# INLINE manySlice #-}
+sliceMany :: Chunk c => Parsec c s e a -> Parsec c s e (Chunk.ChunkSlice c)
+sliceMany = slice . many_
+{-# INLINE sliceMany #-}
+
+sliceSome :: Chunk c => Parsec c s e a -> Parsec c s e (Chunk.ChunkSlice c)
+sliceSome = slice . some_
+{-# INLINE sliceSome #-}
 
 -- | Save the parsing state, then run a parser, then restore the state.
 lookahead :: Parsec c s e a -> Parsec c s e a

@@ -6,10 +6,9 @@ module Text.Metalparsec.Text
     char,
     isAsciiDigit,
     isAsciiLetter,
-    satisfyChar,
+    satisfy,
     satisfyAscii,
-    takeWhileAscii,
-    takeWhileChar,
+    fusedSatisfy,
     text,
     readInt,
   )
