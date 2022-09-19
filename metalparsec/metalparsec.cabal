@@ -161,6 +161,3 @@ benchmark bench
   ghc-options:
     -Wno-incomplete-patterns
     -O2
-  ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
-  ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
-  ghc-options: -dsuppress-uniques -dsuppress-timestamps
