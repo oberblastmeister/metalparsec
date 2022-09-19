@@ -10,6 +10,7 @@
 -- Also see: https://gitlab.haskell.org/ghc/ghc/-/wikis/Unboxed-Numerics
 module Text.Metalparsec.Internal.SizedCompat
   ( eqWord8#,
+    leWord8#,
     wordToWord8#,
     word8ToWord#,
     indexWord8Array#,
@@ -24,12 +25,14 @@ import qualified GHC.Word as W
 
 {- ORMOLU_DISABLE -}
 eqWord8# :: Word8# -> Word8# -> E.Int#
+leWord8# :: Word8# -> Word8# -> E.Int#
 wordToWord8# :: E.Word# -> Word8#
 word8ToWord# :: Word8# -> E.Word#
 indexWord8Array# :: E.ByteArray# -> E.Int# -> Word8#
 readWord8Array# :: E.MutableByteArray# s -> E.Int# -> E.State# s -> (# E.State# s, Word8# #)
 pattern W8# :: Word8# -> W.Word8
 {-# INLINE eqWord8# #-}
+{-# INLINE leWord8# #-}
 {-# INLINE wordToWord8# #-}
 {-# INLINE word8ToWord# #-}
 {-# INLINE indexWord8Array# #-}
@@ -42,6 +45,7 @@ pattern W8# :: Word8# -> W.Word8
 type Word8# = E.Word8#
 
 eqWord8# = E.eqWord8#
+leWord8# = E.leWord8#
 wordToWord8# = E.wordToWord8#
 word8ToWord# = E.word8ToWord#
 indexWord8Array# = E.indexWord8Array#
@@ -54,6 +58,7 @@ pattern W8# w# = W.W8# w#
 type Word8# = E.Word8#
 
 eqWord8# = E.eqWord8#
+leWord8# = E.leWord8#
 wordToWord8# = E.narrowWord8#
 word8ToWord# = E.extendWord8#
 indexWord8Array# bs# i# = wordToWord8# (E.indexWord8Array# bs# i#)
@@ -73,6 +78,7 @@ extendWord8# :: E.Word# -> Word8#
 extendWord8# w# = w#
 
 eqWord8# = E.eqWord#
+leWord8# = E.leWord#
 wordToWord8# = narrowWord8#
 word8ToWord# = extendWord8#
 indexWord8Array# bs# i# = wordToWord8# (E.indexWord8Array# bs# i#)

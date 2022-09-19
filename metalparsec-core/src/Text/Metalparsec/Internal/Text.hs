@@ -213,8 +213,8 @@ readInt## acc e@(# s, l #) i = case i ==# l of
   1# -> (# acc, i #)
   _ -> case Chunk.unsafeIndexWord8# s i of
     w
-      | 1# <- leWord8# (S.wordToWord8# 0x30##) w,
-        1# <- leWord8# w (S.wordToWord8# 0x39##) ->
+      | 1# <- S.leWord8# (S.wordToWord8# 0x30##) w,
+        1# <- S.leWord8# w (S.wordToWord8# 0x39##) ->
           readInt## (mul10 acc +# (word2Int# (S.word8ToWord# w) -# 0x30#)) e (i +# 1#)
     _ -> (# acc, i #)
 {-# INLINE readInt## #-}
