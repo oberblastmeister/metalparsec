@@ -4,10 +4,12 @@ import Data.Word
 
 data Expr
   = Bin Op Expr Expr
-  | Num Word64
+  | Num !Int
+  deriving (Show)
 
 data Op
   = Add
   | Sub
   | Mul
   | Div
+  deriving (Show)

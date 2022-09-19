@@ -62,6 +62,7 @@ common common-options
     UnboxedTuples,
     RoleAnnotations,
     TypeInType,
+    PatternGuards,
   ghc-options:
     -Wall
     -Wincomplete-record-updates
@@ -128,18 +129,20 @@ benchmark bench
       Simple.Megaparsec
       Simple.MetalparsecTH
       Simple.Metalparsec
-    -- Expr
-    --   Expr.Metalparsec
-    --   Expr.Common
+    Expr
+      Expr.Metalparsec
+      Expr.Attoparsec
+      Expr.Flatparse
+      Expr.Common
     -- Json.Metalparsec
     -- Json.Attoparsec
     -- Json.Common
-    -- Javascript
-    --   Javascript.Common
-    --   -- Javascript.Attoparsec
-    --   -- Javascript.Attoparsec.Extended
-    --   Javascript.Metalparsec
-    --   Javascript.Metalparsec.Extended
+    Javascript
+      Javascript.Common
+      -- Javascript.Attoparsec
+      -- Javascript.Attoparsec.Extended
+      Javascript.Metalparsec
+      Javascript.Metalparsec.Extended
       -- Javascript.MetalparsecTH
   build-depends:
     bytestring,

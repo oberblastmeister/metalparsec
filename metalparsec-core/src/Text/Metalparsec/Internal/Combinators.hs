@@ -12,7 +12,9 @@ module Text.Metalparsec.Internal.Combinators
     runParser,
     fail,
     slice,
-    manySlice,
+    rest,
+    sliceMany,
+    sliceSome,
     lookahead,
     fails,
     notFollowedBy,
@@ -38,6 +40,7 @@ where
 
 import qualified Control.Applicative as Applicative
 import GHC.Exts
+import qualified GHC.Exts as Exts
 import Text.Metalparsec.Internal
 import Text.Metalparsec.Internal.Chunk (Chunk)
 import qualified Text.Metalparsec.Internal.Chunk as Chunk
@@ -45,7 +48,7 @@ import Prelude hiding (fail)
 
 -- | Check that the input has at least the given number of bytes.
 ensureLen :: Int -> Parsec c s e ()
-ensureLen (I# len) = Parsec $ \(Env# _ l) p@(Ix# _ i) s ->
+ensureLen (I# len) = Parsec $ \(Env# _ l _) p@(Ix# _ i) s ->
   STR#
     s
     ( case i +# len <=# l of
@@ -104,7 +107,7 @@ many_ (Parsec f) = Parsec go
 
 -- | Skip a Parsec one more times.
 some_ :: Parsec c s e a -> Parsec c s e ()
-some_ pa = pa >> many_ pa
+some_ p = Exts.inline (>>) p (many_ p)
 {-# INLINE some_ #-}
 
 -- | Choose between two Parsecs. If the first Parsec fails, try the second one, but if the first one
@@ -127,7 +130,7 @@ branch pa pt pf = Parsec $ \e p s -> case runParsec# pa e p s of
 
 -- | Succeed if the input is empty.
 eof :: Parsec c s e ()
-eof = parser# $ \(Env# _ l) p@(Ix# _ i) -> case l ==# i of
+eof = parser# $ \(Env# _ l _) p@(Ix# _ i) -> case l ==# i of
   1# -> Ok# p ()
   _ -> Fail#
 
@@ -136,15 +139,24 @@ fail = parser# $ \_ _ -> Fail#
 
 -- | Return a slice consumed by a parser.
 slice :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-slice (Parsec f) = Parsec $ \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
+slice (Parsec f) = Parsec $ \e@(Env# c _ _) p@(Ix# _ i0) s -> case f e p s of
   STR# s r ->
     STR# s $# case r of
       Ok# p@(Ix# _ i) _a -> Ok# p (Chunk.convertSlice# @chunk (# c, i0, i -# i0 #))
       x -> unsafeCoerceRes# x
+{-# INLINEABLE slice #-}
 
-manySlice :: Chunk c => Parsec c s e a -> Parsec c s e (Chunk.ChunkSlice c)
-manySlice = slice . many_
-{-# INLINE manySlice #-}
+rest :: forall chunk u e. Chunk chunk => Parsec chunk u e (Chunk.ChunkSlice chunk)
+rest = parser# $ \(Env# c l _) p@(Ix# _ i) -> Ok# p (Chunk.convertSlice# @chunk (# c, i, l -# i #))
+{-# INLINEABLE rest #-}
+
+sliceMany :: Chunk c => Parsec c s e a -> Parsec c s e (Chunk.ChunkSlice c)
+sliceMany = slice . many_
+{-# INLINE sliceMany #-}
+
+sliceSome :: Chunk c => Parsec c s e a -> Parsec c s e (Chunk.ChunkSlice c)
+sliceSome = slice . some_
+{-# INLINE sliceSome #-}
 
 -- | Save the parsing state, then run a parser, then restore the state.
 lookahead :: Parsec c s e a -> Parsec c s e a

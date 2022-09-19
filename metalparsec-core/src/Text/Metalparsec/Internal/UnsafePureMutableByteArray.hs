@@ -1,4 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE UnliftedFFITypes #-}
 
 module Text.Metalparsec.Internal.UnsafePureMutableByteArray
@@ -57,20 +56,21 @@ fromByteString# bs@(B.Internal.PS fp@(ForeignPtr _ fpc) o l) =
         PlainPtr marr -> do
           let base = Ptr (mutableByteArrayContents# marr)
               off = p `Foreign.minusPtr` base
-          pure $ (MutableByteArray marr, off, (off + l + o))
+          pure (MutableByteArray marr, off, off + l + o)
         _ -> case B.copy bs of
           B.Internal.PS fp@(ForeignPtr _ fpc) o l -> withForeignPtr fp $ \p -> case fpc of
             PlainPtr marr -> do
               let base = Ptr (mutableByteArrayContents# marr)
                   off = p `Foreign.minusPtr` base
-              pure $ (MutableByteArray marr, off, (off + l + o))
+              pure (MutableByteArray marr, off, off + l + o)
             _ -> error "should be PlainPtr"
    in case res of
-        (MutableByteArray marr, (I# off), (I# len)) -> (# UnsafePureMutableArray# marr, off, len #)
+        (MutableByteArray marr, I# off, I# len) -> (# UnsafePureMutableArray# marr, off, len #)
 {-# INLINE fromByteString# #-}
 
+-- TODO: fix this
 sliceByteString# :: (# UnsafePureMutableByteArray#, Int#, Int# #) -> ByteString
-sliceByteString# ((# (UnsafePureMutableArray# marr), off, len #)) =
+sliceByteString# (# UnsafePureMutableArray# marr, off, len #) =
   B.Internal.PS (ForeignPtr (mutableByteArrayContents# marr) (PlainPtr marr)) (I# off) (I# (len -# off))
 {-# INLINE sliceByteString# #-}
 

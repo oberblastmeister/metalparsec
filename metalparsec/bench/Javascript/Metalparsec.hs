@@ -153,10 +153,10 @@ prefixExpr =
       <|> operator "!" $> JSNot
 
 prefix :: Parser JSExpr' -> Parser JSUnaryOp -> Parser JSExpr'
-prefix = flip $ chainPre JSUnary
+prefix e op = chainPre (do o <- op; pure $ JSUnary o) e
 
 postfix :: Parser JSExpr' -> Parser JSUnaryOp -> Parser JSExpr'
-postfix = chainPost (flip JSUnary)
+postfix e op = chainPost e $ do o <- op; pure $ JSUnary o
 
 infixL :: Parser JSExpr' -> Parser JSBinOp -> Parser JSExpr'
 infixL p op = chainl1 p $ do o <- op; pure $ \e e' -> JSBin e o e'
@@ -322,22 +322,22 @@ spaces :: Parser ()
 spaces = some_ space
 
 oneLineComment :: Parser ()
-oneLineComment = void (token "//" *> many_ (satisfyChar (/= '\n')))
+oneLineComment = void (token "//" *> many_ (satisfy (/= '\n')))
 
 multiLineComment :: Parser ()
 multiLineComment =
   let inComment =
         void (token "*/")
-          <|> some_ (satisfyChar (/= '*')) *> inComment
+          <|> some_ (satisfy (/= '*')) *> inComment
           <|> asciiChar '*' *> inComment
    in token "/*" *> inComment
 
-identStart = satisfyChar jsIdentStart
+identStart = satisfy jsIdentStart
 
-identLetter = satisfyChar jsIdentLetter
+identLetter = satisfy jsIdentLetter
 
 stringChar :: Parser (Maybe Char)
-stringChar = Just <$> satisfyChar jsStringLetter <|> stringEscape
+stringChar = Just <$> satisfy jsStringLetter <|> stringEscape
 
 stringEscape :: Parser (Maybe Char)
 stringEscape =
@@ -360,7 +360,7 @@ escapeCode =
     escCode '\\' = pure ('\\')
     escCode '"' = pure ('"')
     escCode '\'' = pure ('\'')
-    escCode '^' = (\c -> toEnum (fromEnum c - fromEnum 'A' + 1)) <$> satisfyChar isUpper
+    escCode '^' = (\c -> toEnum (fromEnum c - fromEnum 'A' + 1)) <$> satisfy isUpper
     escCode 'A' = token "CK" $> ('\ACK')
     escCode 'B' = token "S" $> ('\BS') <|> token "EL" $> ('\BEL')
     escCode 'C' = token "R" $> ('\CR') <|> token "AN" $> ('\CAN')
