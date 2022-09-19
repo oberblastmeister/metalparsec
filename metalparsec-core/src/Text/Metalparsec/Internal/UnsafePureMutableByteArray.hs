@@ -68,6 +68,7 @@ fromByteString# bs@(B.Internal.PS fp@(ForeignPtr _ fpc) o l) =
         (MutableByteArray marr, I# off, I# len) -> (# UnsafePureMutableArray# marr, off, len #)
 {-# INLINE fromByteString# #-}
 
+-- TODO: fix this
 sliceByteString# :: (# UnsafePureMutableByteArray#, Int#, Int# #) -> ByteString
 sliceByteString# (# UnsafePureMutableArray# marr, off, len #) =
   B.Internal.PS (ForeignPtr (mutableByteArrayContents# marr) (PlainPtr marr)) (I# off) (I# (len -# off))

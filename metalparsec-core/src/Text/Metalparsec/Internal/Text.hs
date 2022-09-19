@@ -1,5 +1,8 @@
+{-# LANGUAGE PatternGuards #-}
+
 module Text.Metalparsec.Internal.Text where
 
+import Control.Monad (void)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word8)
@@ -13,7 +16,6 @@ import Text.Metalparsec.Internal.Combinators
 import qualified Text.Metalparsec.Internal.SizedCompat as S
 import qualified Text.Metalparsec.Internal.Utf8 as Utf8
 import Text.Metalparsec.Internal.Util
-import Control.Monad (void)
 
 takeWhileChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e (Chunk.ChunkSlice chunk)
 takeWhileChar = manySlice . satisfyChar
@@ -61,7 +63,7 @@ unsafeSatisfyAscii f = Parsec $ \(Env# c l) (Ix# o i) s ->
 
 char :: ByteChunk c => Char -> Parsec c s e ()
 char = text . T.singleton
-{-# INLINABLE char #-}
+{-# INLINEABLE char #-}
 
 asciiChar :: (HasCallStack, ByteChunk c) => Char -> Parsec c s e ()
 asciiChar c =
@@ -142,7 +144,7 @@ anyChar_ = Parsec $ \(Env# c l) (Ix# o i) s ->
                     1# -> Ok# (Ix# (o +# len#) (i +# len#)) ()
                     _ -> Fail#
     )
-{-# INLINABLE anyChar_ #-}
+{-# INLINEABLE anyChar_ #-}
 
 -- | Parse any `Char` in the ASCII range, fail if the next input character is not in the range.
 --   This is more efficient than `anyChar` if we are only working with ASCII.
@@ -157,17 +159,17 @@ anyCharAscii = Parsec $ \(Env# c l) (Ix# o i) s ->
             1# -> Ok# (Ix# (o +# 1#) (i +# 1#)) (C# c)
             _ -> Fail#
     )
-{-# INLINABLE anyCharAscii #-}
+{-# INLINEABLE anyCharAscii #-}
 
 -- | Skip any `Char` in the ASCII range. More efficient than `anyChar_` if we're working only with
 --   ASCII.
 anyCharASCII_ :: ByteChunk c => Parsec c u e ()
 anyCharASCII_ = void anyCharAscii
-{-# INLINABLE anyCharASCII_ #-}
+{-# INLINEABLE anyCharASCII_ #-}
 
 -- | Parse a UTF-8 `Char` for which a predicate holds.
 satisfyChar :: forall chunk u e. (ByteChunk chunk) => (Char -> Bool) -> Parsec chunk u e Char
-satisfyChar f = Parsec $ \e ix s -> case runParsec# (anyChar @chunk) e ix s of
+satisfyChar f = Parsec $ \e p s -> case runParsec# (anyChar @chunk) e p s of
   STR# s r ->
     STR#
       s
@@ -197,3 +199,32 @@ unsafeByte (S.W8# ch) = Parsec $ \(Env# c _) (Ix# o i) s ->
           _ -> Fail#
     )
 {-# INLINE unsafeByte #-}
+
+mul10 :: Int# -> Int#
+mul10 n = uncheckedIShiftL# n 3# +# uncheckedIShiftL# n 1#
+{-# INLINE mul10 #-}
+
+readInt## :: Chunk.IsByteArray# b => Int# -> Env# b -> Int# -> (# Int#, Int# #)
+readInt## acc e@(Env# s l) i = case i ==# l of
+  1# -> (# acc, i #)
+  _ -> case Chunk.unsafeIndexWord8# s i of
+    w
+      | 1# <- leWord8# (S.wordToWord8# 0x30##) w,
+        1# <- leWord8# w (S.wordToWord8# 0x39##) ->
+          readInt## (mul10 acc +# (word2Int# (S.word8ToWord# w) -# 0x30#)) e (i +# 1#)
+    _ -> (# acc, i #)
+{-# INLINE readInt## #-}
+
+readInt# :: Chunk.IsByteArray# b => Env# b -> Int# -> (# (# #) | (# Int#, Int# #) #)
+readInt# e i = case readInt## 0# e i of
+  (# n, i' #)
+    | 1# <- i ==# i' -> (# (# #) | #)
+    | otherwise -> (# | (# n, i' #) #)
+{-# INLINE readInt# #-}
+
+readInt :: Chunk.ByteChunk c => Parsec c s e Int
+readInt = Parsec $ \e (Ix# o i) s ->
+  STR# s $# case readInt# e i of
+    (# (# #) | #) -> Fail#
+    (# | (# n, i' #) #) -> Ok# (Ix# (o +# (i' -# i)) i') (I# n)
+{-# INLINEABLE readInt #-}

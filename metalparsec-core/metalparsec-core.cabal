@@ -127,10 +127,13 @@ test-suite test
   hs-source-dirs: test
   main-is: Main.hs
   other-modules:
+    Properties
     Sexp
+    Util
   build-depends:
     metalparsec-core,
     tasty,
+    tasty-quickcheck,
     tasty-hunit,
-    -- QuickCheck
-    -- quickcheck-instances
+    QuickCheck,
+    quickcheck-instances

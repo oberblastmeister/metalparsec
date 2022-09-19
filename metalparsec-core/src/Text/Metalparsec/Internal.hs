@@ -18,7 +18,7 @@ import Prelude hiding (fail)
 
 newtype Parsec c s e a = Parsec
   { runParsec# ::
-      Env# (Chunk.BaseArray# c) ->
+      BaseEnv# c ->
       Ix# ->
       s ->
       (# s, Res# e a #)
@@ -38,6 +38,8 @@ type Res# e a =
 
 type Env# (s :: UnliftedType) = (# s, Int# #)
 
+type BaseEnv# c = Env# (Chunk.BaseArray# c)
+
 -- o, i
 type Ix# = (# Int#, Int# #)
 
@@ -56,7 +58,7 @@ type ST# s a = State# s -> (# State# s, a #)
 
 -- | Contains return value and a pointer to the rest of the input buffer.
 pattern Ok# :: Ix# -> a -> Res# e a
-pattern Ok# ix a = (# (# ix, a #) | | #)
+pattern Ok# p a = (# (# p, a #) | | #)
 
 -- | Constructor for errors which are by default non-recoverable.
 pattern Err# :: e -> Res# e a
@@ -83,7 +85,7 @@ f $# r = f r
 {-# INLINE ($#) #-}
 
 instance Functor (Parsec c s e) where
-  fmap f (Parsec g) = Parsec $ \e ix s -> case g e ix s of
+  fmap f (Parsec g) = Parsec $ \e p s -> case g e p s of
     STR# s r ->
       STR# s $# case r of
         Ok# p a -> let !b = f a in Ok# p b
@@ -101,10 +103,10 @@ instance Applicative (Parsec c s e) where
             x -> unsafeCoerceRes# x
       x -> STR# s (unsafeCoerceRes# x)
 
-  Parsec fa <* Parsec fb = Parsec $ \e ix s -> case fa e ix s of
+  Parsec fa <* Parsec fb = Parsec $ \e p s -> case fa e p s of
     STR# s r -> case r of
-      Ok# _p a ->
-        case fb e ix s of
+      Ok# p a ->
+        case fb e p s of
           STR# s r ->
             STR# s $# case r of
               Ok# p _ -> Ok# p a
@@ -150,10 +152,10 @@ instance Alternative (Parsec c s e) where
   empty = Parsec $ \_ _ s -> STR# s Fail#
 
   -- Don't use this! @<|>@ is left associative, which is slower.
-  Parsec f <|> Parsec g = Parsec $ \e ix s ->
-    case f e ix s of
+  Parsec f <|> Parsec g = Parsec $ \e p s ->
+    case f e p s of
       STR# s r -> case r of
-        Fail# -> g e ix s
+        Fail# -> g e p s
         x -> STR# s x
 
   -- Run a Parsec zero more times, collect the results in a list. Note: for optimal performance,
@@ -199,7 +201,7 @@ instance MonadError e (Parsec c s e) where
 
 -- | Higher-level boxed data type for parsing results.
 data Result e a
-  = -- | Contains return value and unconsumed input.
+  = -- | Contains return value
     Ok a
   | -- | Recoverable-by-default failure.
     Fail
@@ -286,7 +288,7 @@ err e = Parsec $ \_ _ s -> STR# s (Err# e)
 
 -- | Convert a parsing error into failure.
 try :: Parsec c s e a -> Parsec c s e a
-try (Parsec f) = Parsec $ \e ix s -> case f e ix s of
+try (Parsec f) = Parsec $ \e p s -> case f e p s of
   STR# s r ->
     STR# s $# case r of
       Err# _ -> Fail#

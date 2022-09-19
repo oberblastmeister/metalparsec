@@ -11,6 +11,7 @@ module Text.Metalparsec.Text
     takeWhileAscii,
     takeWhileChar,
     text,
+    readInt,
   )
 where
 

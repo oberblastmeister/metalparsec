@@ -12,6 +12,7 @@ module Text.Metalparsec.Internal.Combinators
     runParser,
     fail,
     slice,
+    rest,
     manySlice,
     lookahead,
     fails,
@@ -33,7 +34,6 @@ module Text.Metalparsec.Internal.Combinators
     getState,
     putState,
     withOption,
-    chainPost',
   )
 where
 
@@ -144,6 +144,10 @@ slice (Parsec f) = Parsec $ \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
       x -> unsafeCoerceRes# x
 {-# INLINEABLE slice #-}
 
+rest :: forall chunk u e. Chunk chunk => Parsec chunk u e (Chunk.ChunkSlice chunk)
+rest = parser# $ \(Env# c l) p@(Ix# _ i) -> Ok# p (Chunk.convertSlice# @chunk (# c, i, l -# i #))
+{-# INLINEABLE rest #-}
+
 manySlice :: Chunk c => Parsec c s e a -> Parsec c s e (Chunk.ChunkSlice c)
 manySlice = slice . many_
 {-# INLINE manySlice #-}
@@ -197,12 +201,6 @@ chainPost (Parsec elem) (Parsec post) = Parsec $ \e p s -> case elem e p s of
         Fail# -> STR# s $# Ok# p x
         Err# e -> STR# s $# Err# e
 {-# INLINE chainPost #-}
-
-chainPost' :: Parsec c s e a -> Parsec c s e (a -> a) -> Parsec c s e a
-chainPost' elem post = elem >>= go
-  where
-    go x = do { f <- post; go $! f x } <|> pure x
-{-# INLINE chainPost' #-}
 
 -- | @chainl1 p op@ parses /one/ or more occurrences of @p@,
 -- separated by @op@ Returns a value obtained by a /left/ associative

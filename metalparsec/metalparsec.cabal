@@ -130,6 +130,8 @@ benchmark bench
       Simple.Metalparsec
     Expr
       Expr.Metalparsec
+      Expr.Attoparsec
+      Expr.Flatparse
       Expr.Common
     -- Json.Metalparsec
     -- Json.Attoparsec
@@ -159,3 +161,6 @@ benchmark bench
   ghc-options:
     -Wno-incomplete-patterns
     -O2
+  ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
+  ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
+  ghc-options: -dsuppress-uniques -dsuppress-timestamps
