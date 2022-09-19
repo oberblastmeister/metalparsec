@@ -18,10 +18,10 @@ import Prelude hiding (fail)
 
 newtype Parsec c s e a = Parsec
   { runParsec# ::
-      BaseEnv# c ->
+      BaseEnv# c s ->
       Ix# ->
-      s ->
-      (# s, Res# e a #)
+      State# RealWorld ->
+      (# State# RealWorld, Res# e a #)
   }
 
 type Res# e a =
@@ -36,20 +36,20 @@ type Res# e a =
     (# e #)
   #)
 
-type Env# (s :: UnliftedType) = (# s, Int# #)
+type Env# (c :: UnliftedType) s = (# c, Int#, MutVar# RealWorld s #)
 
-type BaseEnv# c = Env# (Chunk.BaseArray# c)
+type BaseEnv# c s = Env# (Chunk.BaseArray# c) s
 
 -- o, i
 type Ix# = (# Int#, Int# #)
 
-type STR# s e a = (# s, Res# e a #)
+type STR# e a = (# State# RealWorld, Res# e a #)
 
-pattern STR# :: s -> Res# e a -> STR# s e a
+pattern STR# :: State# RealWorld -> Res# e a -> STR# e a
 pattern STR# s x = (# s, x #)
 
-pattern Env# :: s -> Int# -> Env# s
-pattern Env# s l = (# s, l #)
+pattern Env# :: c -> Int# -> MutVar# RealWorld s -> Env# c s
+pattern Env# s l m = (# s, l, m #)
 
 pattern Ix# :: Int# -> Int# -> Ix#
 pattern Ix# i# i## = (# i#, i## #)
@@ -80,7 +80,7 @@ unsafeCoerceRes# :: Res# e a -> Res# e b
 unsafeCoerceRes# = unsafeCoerce#
 {-# INLINE unsafeCoerceRes# #-}
 
-($#) :: (Res# e a -> STR# s e a) -> Res# e a -> STR# s e a
+($#) :: (Res# e a -> STR# e a) -> Res# e a -> STR# e a
 f $# r = f r
 {-# INLINE ($#) #-}
 
@@ -267,13 +267,15 @@ withPos# f = Parsec $ \e p@(Ix# _ i) s -> runParsec# (f i) e p s
 getPos :: Parsec c s e Int
 getPos = Parsec $ \_e p@(Ix# o _) s -> STR# s (Ok# p (I# o))
 
--- | Get the current state
+-- -- | Get the current state
 getState :: Parsec c s e s
-getState = Parsec $ \_e p s -> STR# s (Ok# p s)
+getState = Parsec $ \(Env# _ _ m) p s -> case readMutVar# m s of
+  (# s, x #) -> STR# s (Ok# p x)
 
 -- | Set the current state
 putState :: s -> Parsec c s e ()
-putState s = Parsec $ \_e p _s -> STR# s (Ok# p ())
+putState x = Parsec $ \(Env# _ _ m) p s -> case writeMutVar# m x s of
+  s -> STR# s (Ok# p ())
 
 -- | Turn a `Result` into a `Maybe`
 maybeResult :: Result e a -> Maybe a
@@ -302,15 +304,18 @@ tryWith (Parsec f) g = Parsec $ \e p s -> case f e p s of
     x -> STR# s x
 
 -- | Create a parser that doesn't care about the state.
-parser# :: (Env# (Chunk.BaseArray# c) -> Ix# -> Res# e a) -> Parsec c s e a
+parser# :: (Env# (Chunk.BaseArray# c) s -> Ix# -> Res# e a) -> Parsec c s e a
 parser# f = Parsec $ \e p s -> STR# s $# f e p
 {-# INLINE parser# #-}
 
 -- | Run a parser
 runParser :: forall chunk s e a. Chunk chunk => Parsec chunk s e a -> s -> chunk -> Result e a
 runParser (Parsec f) s c = case Chunk.toSlice# @chunk c of
-  (# s#, off#, len# #) ->
-    case f (Env# s# len#) (Ix# 0# off#) s of
+  (# c#, off#, len# #) ->
+    case runRW#
+      ( \s# -> case newMutVar# s s# of
+          (# s#, m# #) -> f (Env# c# len# m#) (Ix# 0# off#) s#
+      ) of
       (# _, r #) -> case r of
         Err# e -> Err e
         Fail# -> Fail

@@ -46,7 +46,7 @@ import Prelude hiding (fail)
 
 -- | Check that the input has at least the given number of bytes.
 ensureLen :: Int -> Parsec c s e ()
-ensureLen (I# len) = Parsec $ \(Env# _ l) p@(Ix# _ i) s ->
+ensureLen (I# len) = Parsec $ \(Env# _ l _) p@(Ix# _ i) s ->
   STR#
     s
     ( case i +# len <=# l of
@@ -128,7 +128,7 @@ branch pa pt pf = Parsec $ \e p s -> case runParsec# pa e p s of
 
 -- | Succeed if the input is empty.
 eof :: Parsec c s e ()
-eof = parser# $ \(Env# _ l) p@(Ix# _ i) -> case l ==# i of
+eof = parser# $ \(Env# _ l _) p@(Ix# _ i) -> case l ==# i of
   1# -> Ok# p ()
   _ -> Fail#
 
@@ -137,7 +137,7 @@ fail = parser# $ \_ _ -> Fail#
 
 -- | Return a slice consumed by a parser.
 slice :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e (Chunk.ChunkSlice chunk)
-slice (Parsec f) = Parsec $ \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
+slice (Parsec f) = Parsec $ \e@(Env# c _ _) p@(Ix# _ i0) s -> case f e p s of
   STR# s r ->
     STR# s $# case r of
       Ok# p@(Ix# _ i) _a -> Ok# p (Chunk.convertSlice# @chunk (# c, i0, i -# i0 #))
@@ -145,7 +145,7 @@ slice (Parsec f) = Parsec $ \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
 {-# INLINEABLE slice #-}
 
 rest :: forall chunk u e. Chunk chunk => Parsec chunk u e (Chunk.ChunkSlice chunk)
-rest = parser# $ \(Env# c l) p@(Ix# _ i) -> Ok# p (Chunk.convertSlice# @chunk (# c, i, l -# i #))
+rest = parser# $ \(Env# c l _) p@(Ix# _ i) -> Ok# p (Chunk.convertSlice# @chunk (# c, i, l -# i #))
 {-# INLINEABLE rest #-}
 
 manySlice :: Chunk c => Parsec c s e a -> Parsec c s e (Chunk.ChunkSlice c)
