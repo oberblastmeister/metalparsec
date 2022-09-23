@@ -1,16 +1,16 @@
 module Util where
 
 import Control.DeepSeq (NFData)
--- import qualified Javascript.Attoparsec as Attoparsec
-
 import qualified Data.Attoparsec.ByteString as Attoparsec.ByteString
 import qualified Data.Attoparsec.Text as Attoparsec.Text
 import Data.ByteString (ByteString)
 import qualified Data.ByteString
 import Data.Text (Text)
 import qualified Data.Text.IO
+#ifdef FLATPARSE
 import qualified FlatParse.Basic as Flatparse
 import qualified FlatParse.Stateful as Flatparse.Stateful
+#endif
 import Gauge.Main
 import qualified Text.Metalparsec as Metalparsec
 
@@ -41,8 +41,10 @@ attoParseByteString p = Attoparsec.ByteString.maybeResult . Attoparsec.ByteStrin
 metalParse :: Metalparsec.Parsec Text () e a -> Text -> Metalparsec.Result e a
 metalParse p = Metalparsec.runParser p ()
 
+#ifdef FLATPARSE
 flatParseBasic :: Flatparse.Parser e a -> ByteString -> Flatparse.Result e a
 flatParseBasic = Flatparse.runParser
 
 flatParseStateful :: Flatparse.Stateful.Parser () e a -> ByteString -> Flatparse.Stateful.Result e a
 flatParseStateful p = Flatparse.Stateful.runParser p () 0
+#endif
