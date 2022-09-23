@@ -11,8 +11,6 @@ import Control.Monad.State (MonadState (..))
 import Data.Bifoldable (Bifoldable (..))
 import Data.Bifunctor (Bifunctor (..))
 import Data.Bitraversable (Bitraversable (..), bisequenceA)
-import Data.Kind (Type)
-import Data.Void (Void)
 import GHC.Exts.Compat
 import Text.Metalparsec.Internal.Chunk (Chunk)
 import qualified Text.Metalparsec.Internal.Chunk as Chunk
