@@ -38,9 +38,7 @@ constraints:
   ghc-bignum installed,
   ghc-prim installed,
   integer-gmp installed,
-  template-haskell installed,
-  text installed,
-  time installed
+  template-haskell installed
 
 constraints:
   Agda ==2.6.2.2,
