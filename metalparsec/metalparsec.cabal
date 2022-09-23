@@ -112,27 +112,35 @@ common rtsopts
 --     -- QuickCheck
 --     -- quickcheck-instances
 
+common flatparse
+  if (impl(ghc < 9.4))
+    build-depends: flatparse
+    cpp-options: -DFLATPARSE
+    other-modules:
+      Simple.FPBasic
+      Simple.FPStateful
+      Expr.Flatparse
+
 benchmark bench
-  import: common-options, rtsopts
+  import: common-options, rtsopts, flatparse
   type: exitcode-stdio-1.0
   hs-source-dirs: bench
+  include-dirs: include
   main-is: Main.hs
   default-extensions:
+    CPP
     BlockArguments
     TemplateHaskell
   other-modules:
     Util
     Simple
       Simple.Attoparsec
-      Simple.FPBasic
-      Simple.FPStateful
       Simple.Megaparsec
       Simple.MetalparsecTH
       Simple.Metalparsec
     Expr
       Expr.Metalparsec
       Expr.Attoparsec
-      Expr.Flatparse
       Expr.Common
     -- Json.Metalparsec
     -- Json.Attoparsec
@@ -151,7 +159,6 @@ benchmark bench
     metalparsec-th,
     attoparsec,
     megaparsec,
-    flatparse,
     gauge,
     containers,
     unordered-containers,
