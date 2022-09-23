@@ -8,9 +8,9 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.15.20220826
+# version: 0.15.20220920
 #
-# REGENDATA ("0.15.20220826",["github","cabal.project"])
+# REGENDATA ("0.15.20220920",["github","cabal.project"])
 #
 name: Haskell-CI
 on:
@@ -171,10 +171,10 @@ jobs:
       - name: initial cabal.project for sdist
         run: |
           touch cabal.project
-          echo "packages: $GITHUB_WORKSPACE/source/metalparsec-core" >> cabal.project
-          echo "packages: $GITHUB_WORKSPACE/source/metalparsec-stream" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/metalparsec" >> cabal.project
+          echo "packages: $GITHUB_WORKSPACE/source/metalparsec-stream" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/metalparsec-th" >> cabal.project
+          echo "packages: $GITHUB_WORKSPACE/source/metalparsec-core" >> cabal.project
           cat cabal.project
       - name: sdist
         run: |
@@ -186,30 +186,111 @@ jobs:
           find sdist -maxdepth 1 -type f -name '*.tar.gz' -exec tar -C $GITHUB_WORKSPACE/unpacked -xzvf {} \;
       - name: generate cabal.project
         run: |
-          PKGDIR_metalparsec_core="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-core-[0-9.]*')"
-          echo "PKGDIR_metalparsec_core=${PKGDIR_metalparsec_core}" >> "$GITHUB_ENV"
-          PKGDIR_metalparsec_stream="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-stream-[0-9.]*')"
-          echo "PKGDIR_metalparsec_stream=${PKGDIR_metalparsec_stream}" >> "$GITHUB_ENV"
           PKGDIR_metalparsec="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-[0-9.]*')"
           echo "PKGDIR_metalparsec=${PKGDIR_metalparsec}" >> "$GITHUB_ENV"
+          PKGDIR_metalparsec_stream="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-stream-[0-9.]*')"
+          echo "PKGDIR_metalparsec_stream=${PKGDIR_metalparsec_stream}" >> "$GITHUB_ENV"
           PKGDIR_metalparsec_th="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-th-[0-9.]*')"
           echo "PKGDIR_metalparsec_th=${PKGDIR_metalparsec_th}" >> "$GITHUB_ENV"
+          PKGDIR_metalparsec_core="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/metalparsec-core-[0-9.]*')"
+          echo "PKGDIR_metalparsec_core=${PKGDIR_metalparsec_core}" >> "$GITHUB_ENV"
           rm -f cabal.project cabal.project.local
           touch cabal.project
           touch cabal.project.local
-          echo "packages: ${PKGDIR_metalparsec_core}" >> cabal.project
-          echo "packages: ${PKGDIR_metalparsec_stream}" >> cabal.project
           echo "packages: ${PKGDIR_metalparsec}" >> cabal.project
+          echo "packages: ${PKGDIR_metalparsec_stream}" >> cabal.project
           echo "packages: ${PKGDIR_metalparsec_th}" >> cabal.project
-          echo "package metalparsec-core" >> cabal.project
+          echo "packages: ${PKGDIR_metalparsec_core}" >> cabal.project
+          echo "package metalparsec" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           echo "package metalparsec-stream" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
-          echo "package metalparsec" >> cabal.project
-          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           echo "package metalparsec-th" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
+          echo "package metalparsec-core" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           cat >> cabal.project <<EOF
+          constraints: base installed
+          constraints: binary installed
+          constraints: bytestring installed
+          constraints: ghc installed
+          constraints: ghc-bignum installed
+          constraints: ghc-prim installed
+          constraints: integer-gmp installed
+          constraints: template-haskell installed
+          constraints: text installed
+          constraints: time installed
+          constraints: Agda ==2.6.2.2
+          constraints: Cabal ==2.4.1.0 || ==3.0.2.0 || ==3.2.1.0
+          constraints: EdisonAPI ==1.3.1
+          constraints: EdisonCore ==1.3.2.1
+          constraints: FPretty ==1.1
+          constraints: ansi-pretty ==0.1.2.2
+          constraints: arith-encode ==1.0.2
+          constraints: async-pool ==0.9.1
+          constraints: box-tuples ==0.2.0.4
+          constraints: bv-sized ==1.0.4
+          constraints: bytesmith ==0.3.9.0
+          constraints: cabal-doctest ==1.0.9
+          constraints: cborg ==0.2.7.0
+          constraints: charsetdetect ==1.1.0.2
+          constraints: charsetdetect-ae ==1.1.0.4
+          constraints: chaselev-deque ==0.5.0.5
+          constraints: critbit ==0.2.0.0
+          constraints: cryptol ==2.13.0
+          constraints: data-default-instances-new-base ==0.0.2
+          constraints: data-r-tree ==0.6.0
+          constraints: datetime ==0.3.1
+          constraints: doctest ==0.20.0
+          constraints: double-conversion ==2.0.4.1
+          constraints: drinkery ==0.4
+          constraints: endo ==0.3.0.1
+          constraints: enumeration ==0.2.0
+          constraints: fgl ==5.7.0.3
+          constraints: free-algebras ==0.1.0.1
+          constraints: free-functors ==1.2.1
+          constraints: futhark ==0.22.1
+          constraints: geniplate-mirror ==0.7.8
+          constraints: ghc-debug-common ==0.2.1.0
+          constraints: haskeline ==0.7.5.0
+          constraints: haxl ==2.4.0.0
+          constraints: hgeometry ==0.14
+          constraints: hgeometry-combinatorial ==0.14
+          constraints: hgeometry-ipe ==0.13
+          constraints: inj-base ==0.2.0.0
+          constraints: inline-c-cpp ==0.5.0.0
+          constraints: io-choice ==0.0.7
+          constraints: language-haskell-extract ==0.2.4
+          constraints: monadplus ==1.4.2
+          constraints: packman ==0.5.0
+          constraints: parameterized-utils ==2.1.5.0
+          constraints: partial-isomorphisms ==0.2.3.0
+          constraints: posix-api ==0.3.5.0
+          constraints: primitive-unaligned ==0.1.1.1
+          constraints: proto3-wire ==1.4.0
+          constraints: row-types ==1.0.1.2
+          constraints: salak ==0.3.6
+          constraints: servant ==0.19
+          constraints: servant-server ==0.19.1
+          constraints: siphash ==1.0.3
+          constraints: text-format ==0.3.2
+          constraints: true-name ==0.1.0.3
+          constraints: unix-time ==0.4.7
+          constraints: vector-th-unbox ==0.2.2
+          constraints: what4 ==1.3
+          constraints: wide-word ==0.1.1.2
+          constraints: yesod ==1.6.2
+          allow-newer: Cabal
+          allow-newer: base
+          allow-newer: binary
+          allow-newer: bytestring
+          allow-newer: ghc
+          allow-newer: ghc-bignum
+          allow-newer: ghc-prim
+          allow-newer: integer-gmp
+          allow-newer: template-haskell
+          allow-newer: text
+          allow-newer: time
           EOF
           $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(metalparsec|metalparsec-core|metalparsec-stream|metalparsec-th|text)$/; }' >> cabal.project.local
           cat cabal.project
@@ -237,16 +318,6 @@ jobs:
       - name: tests
         run: |
           $CABAL v2-test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=direct
-      - name: cabal check
-        run: |
-          cd ${PKGDIR_metalparsec_core} || false
-          ${CABAL} -vnormal check
-          cd ${PKGDIR_metalparsec_stream} || false
-          ${CABAL} -vnormal check
-          cd ${PKGDIR_metalparsec} || false
-          ${CABAL} -vnormal check
-          cd ${PKGDIR_metalparsec_th} || false
-          ${CABAL} -vnormal check
       - name: haddock
         run: |
           $CABAL v2-haddock --haddock-all $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
