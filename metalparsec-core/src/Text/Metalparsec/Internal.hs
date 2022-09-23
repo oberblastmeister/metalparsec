@@ -221,17 +221,20 @@ instance MonadError e (BaseParsec i c s e) where
   {-# INLINE catchError #-}
 
 -- | Higher-level boxed data type for parsing results.
-data IResult :: Input -> Type -> Type -> Type -> Type -> Type where
-  Ok :: a -> IResult i c s e a
-  Fail :: IResult i c s e a
-  Err :: e -> IResult i c s e a
-  More :: ((# Chunk.BaseArray# c, s #) -> IResult Incremental c s e a) -> IResult Incremental c s e a
+data Result e a
+  = Ok a
+  | Fail
+  | Err e
+  deriving (Show, Eq, Ord)
 
-deriving instance (Show a, Show e) => (Show (Result e a))
+data IResult c s e a
+  = Done (Result e a)
+  | More (IncrementalParsec c s e a)
+  deriving (Functor)
 
-deriving instance (Eq a, Eq e) => (Eq (Result e a))
-
-type Result = IResult Complete Void Void
+type family InputResult i c s e a = r | r -> i e a where
+  InputResult Complete _ _ e a = Result e a
+  InputResult Incremental c s e a = IResult c s e a
 
 instance Functor (Result e) where
   fmap f (Ok x) = Ok (f x)
