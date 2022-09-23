@@ -137,4 +137,4 @@ test-suite test
     tasty-quickcheck,
     tasty-hunit,
     QuickCheck,
-    quickcheck-instances
+    -- quickcheck-instances
