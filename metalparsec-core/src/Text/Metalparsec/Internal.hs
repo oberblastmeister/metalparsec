@@ -20,8 +20,8 @@ newtype Parsec c s e a = Parsec
   { runParsec# ::
       BaseEnv# c s ->
       Ix# ->
-      State# RealWorld ->
-      (# State# RealWorld, Res# e a #)
+      s ->
+      (# s, Res# e a #)
   }
 
 type Res# e a =
@@ -36,20 +36,20 @@ type Res# e a =
     (# e #)
   #)
 
-type Env# (c :: UnliftedType) s = (# c, Int#, MutVar# RealWorld s #)
+type Env# (c :: UnliftedType) s = (# c, Int# #)
 
 type BaseEnv# c s = Env# (Chunk.BaseArray# c) s
 
 -- o, i
 type Ix# = (# Int#, Int# #)
 
-type STR# e a = (# State# RealWorld, Res# e a #)
+type STR# s e a = (# s, Res# e a #)
 
-pattern STR# :: State# RealWorld -> Res# e a -> STR# e a
+pattern STR# :: s -> Res# e a -> STR# s e a
 pattern STR# s x = (# s, x #)
 
-pattern Env# :: c -> Int# -> MutVar# RealWorld s -> Env# c s
-pattern Env# s l m = (# s, l, m #)
+pattern Env# :: c -> Int# -> Env# c s
+pattern Env# s l = (# s, l #)
 
 pattern Ix# :: Int# -> Int# -> Ix#
 pattern Ix# i# i## = (# i#, i## #)
@@ -58,7 +58,7 @@ plusIx# :: Ix# -> Int# -> Ix#
 plusIx# (Ix# o i) n = Ix# (o +# n) (i +# n)
 {-# INLINE plusIx# #-}
 
-type ST# s a = State# s -> (# State# s, a #)
+type ST# s a = s -> (# s, a #)
 
 -- | Contains return value and a pointer to the rest of the input buffer.
 pattern Ok# :: Ix# -> a -> Res# e a
@@ -84,7 +84,7 @@ unsafeCoerceRes# :: Res# e a -> Res# e b
 unsafeCoerceRes# = unsafeCoerce#
 {-# INLINE unsafeCoerceRes# #-}
 
-($#) :: (Res# e a -> STR# e a) -> Res# e a -> STR# e a
+($#) :: (Res# e a -> STR# s e a) -> Res# e a -> STR# s e a
 f $# r = f r
 {-# INLINE ($#) #-}
 
@@ -273,13 +273,11 @@ getPos = Parsec $ \_e p@(Ix# o _) s -> STR# s (Ok# p (I# o))
 
 -- -- | Get the current state
 getState :: Parsec c s e s
-getState = Parsec $ \(Env# _ _ m) p s -> case readMutVar# m s of
-  (# s, x #) -> STR# s (Ok# p x)
+getState = Parsec $ \(Env# _ _) p s -> STR# s (Ok# p s)
 
 -- | Set the current state
 putState :: s -> Parsec c s e ()
-putState x = Parsec $ \(Env# _ _ m) p s -> case writeMutVar# m x s of
-  s -> STR# s (Ok# p ())
+putState x = Parsec $ \(Env# _ _) p _ -> STR# x (Ok# p ())
 
 -- | Turn a `Result` into a `Maybe`
 maybeResult :: Result e a -> Maybe a
@@ -313,14 +311,14 @@ parser# f = Parsec $ \e p s -> STR# s $# f e p
 {-# INLINE parser# #-}
 
 -- | Run a parser
-runParser :: forall chunk s e a. Chunk chunk => Parsec chunk s e a -> s -> chunk -> Result e a
+runParser :: forall chunk s e a. Chunk chunk => Parsec chunk s e a -> s -> chunk -> Result e (s, a)
 runParser (Parsec f) s c = case Chunk.toSlice# @chunk c of
   (# c#, off#, len# #) ->
-    case runRW#
-      ( \s# -> case newMutVar# s s# of
-          (# s#, m# #) -> f (Env# c# len# m#) (Ix# 0# off#) s#
-      ) of
-      (# _, r #) -> case r of
+    case f (Env# c# len#) (Ix# 0# off#) s of
+      (# s, r #) -> case r of
         Err# e -> Err e
         Fail# -> Fail
-        Ok# (Ix# _ _) a -> Ok a
+        Ok# (Ix# _ _) a -> Ok (s, a)
+
+evalParser :: Chunk c => Parsec c s e a -> s -> c -> Result e a
+evalParser p s c = snd <$> runParser p s c
