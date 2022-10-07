@@ -138,16 +138,16 @@ fail :: Parsec c s e a
 fail = parser# $ \_ _ -> Fail#
 
 -- | Return a slice consumed by a parser.
-slice :: forall chunk u e a. Chunk chunk => Parsec chunk u e a -> Parsec chunk u e chunk
+slice :: Chunk c => Parsec c u e a -> Parsec c u e c
 slice (Parsec f) = Parsec $ \e@(Env# c _) p@(Ix# _ i0) s -> case f e p s of
   STR# s r ->
     STR# s $# case r of
-      Ok# p@(Ix# _ i) _a -> Ok# p (Chunk.convertSlice# @chunk (# c, i0, i -# i0 #))
+      Ok# p@(Ix# _ i) _a -> Ok# p (Chunk.convertSlice# (# c, i0, i -# i0 #))
       x -> unsafeCoerceRes# x
 {-# INLINEABLE slice #-}
 
-rest :: forall chunk u e. Chunk chunk => Parsec chunk u e chunk
-rest = parser# $ \(Env# c l) p@(Ix# _ i) -> Ok# p (Chunk.convertSlice# @chunk (# c, i, l -# i #))
+rest :: Chunk c => Parsec c u e c
+rest = parser# $ \(Env# c l) p@(Ix# _ i) -> Ok# p (Chunk.convertSlice# (# c, i, l -# i #))
 {-# INLINEABLE rest #-}
 
 sliceMany :: Chunk c => Parsec c s e a -> Parsec c s e c
