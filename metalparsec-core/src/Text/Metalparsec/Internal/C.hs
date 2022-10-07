@@ -8,9 +8,3 @@ import GHC.Exts
 
 foreign import ccall unsafe "metalparsec_memchr_off"
   memchr_off :: ByteArray# -> CSize -> CInt -> CSize -> IO CSize
-
-foreign import ccall unsafe "metalparsec_memchr_off"
-  memchr_off' :: MutableByteArray# s -> CSize -> CInt -> CSize -> IO CSize
-
-foreign import ccall unsafe "metalparsec_memcmp_off"
-  memcmp_off' :: ByteArray# -> CSize -> MutableByteArray# s -> CSize -> CSize -> IO CInt

@@ -14,8 +14,6 @@ import qualified FlatParse.Stateful as Flatparse.Stateful
 import Gauge.Main
 import qualified Text.Metalparsec as Metalparsec
 
--- runMetal :: Text -> Metalparsec.Result Text JSProgram
--- runMetal = metalParse Metalparsec.javascript
 makeBenchmark :: (NFData res, NFData rep) => [FilePath] -> (FilePath -> IO rep) -> String -> (rep -> res) -> Benchmark
 makeBenchmark filenames load lib parser = env (traverse load filenames) (bgroup lib . (tasks filenames))
   where
@@ -39,7 +37,7 @@ attoParseByteString :: Attoparsec.ByteString.Parser a -> ByteString -> Maybe a
 attoParseByteString p = Attoparsec.ByteString.maybeResult . Attoparsec.ByteString.parse p
 
 metalParse :: Metalparsec.Parsec Text () e a -> Text -> Metalparsec.Result e a
-metalParse p = Metalparsec.runParser p ()
+metalParse p = Metalparsec.evalParser p ()
 
 flatParseBasic :: Flatparse.Parser e a -> ByteString -> Flatparse.Result e a
 flatParseBasic = Flatparse.runParser

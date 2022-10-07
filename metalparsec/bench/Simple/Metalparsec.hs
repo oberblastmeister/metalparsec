@@ -18,15 +18,15 @@ ident = some_ (satisfyAscii isAsciiLetter) >> ws
 sexp = branch open (some_ sexp >> close) ident
 src = sexp >> eof
 
-runSexp :: Text -> Result () (())
-runSexp = runParser src ()
+runSexp :: Text -> Result () ()
+runSexp = evalParser src ()
 
 longw, longws :: Parser () ()
 longw = text "thisisalongkeyword"
 longws = some_ (longw >> ws) >> eof
 
-runLongws :: Text -> Result () (())
-runLongws = runParser longws ()
+runLongws :: Text -> Result () ()
+runLongws = evalParser longws ()
 
 numeral, comma, numcsv :: Parser () ()
 numeral = some_ (satisfyAscii isAsciiDigit) >> ws
@@ -34,4 +34,4 @@ comma = asciiChar ',' >> ws
 numcsv = numeral >> many_ (comma >> numeral) >> eof
 
 runNumcsv :: Text -> Result () (())
-runNumcsv = runParser numcsv ()
+runNumcsv = evalParser numcsv ()

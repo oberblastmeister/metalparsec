@@ -102,7 +102,7 @@ library
         Text.Metalparsec.Internal.Compat.Word
         Text.Metalparsec.Internal.Chunk
         Text.Metalparsec.Internal.Utf8
-        Text.Metalparsec.Internal.UnsafePureMutableByteArray
+        Text.Metalparsec.Internal.ByteStringExt
         Text.Metalparsec.Internal.ByteArrayExt
         Text.Metalparsec.Internal.SizedCompat
         Text.Metalparsec.Internal.Combinators
