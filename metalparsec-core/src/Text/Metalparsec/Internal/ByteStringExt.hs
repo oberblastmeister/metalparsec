@@ -40,8 +40,7 @@ fromByteString# bs@(B.Internal.PS fp@(ForeignPtr _ fpc) o l) =
         (ByteArray arr, I# off, I# len) -> (# arr, off, len #)
 {-# INLINE fromByteString# #-}
 
--- TODO: fix this
 sliceByteString# :: (# ByteArray#, Int#, Int# #) -> ByteString
 sliceByteString# (# arr, off, len #) =
-  B.Internal.PS (ForeignPtr (byteArrayContents# arr) (PlainPtr (unsafeCoerce# arr))) (I# off) (I# (len -# off))
+  B.Internal.PS (ForeignPtr (byteArrayContents# arr) (PlainPtr (unsafeCoerce# arr))) (I# off) (I# len)
 {-# INLINE sliceByteString# #-}
