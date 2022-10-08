@@ -29,7 +29,7 @@ data Bytes = Bytes
 
 type TokenChunk c = (Chunk c, TokenOffset (Token c), NotText c)
 
-type ByteChunk c = (Token c ~ Word8, BaseArray# c ~ ByteArray#)
+type ByteChunk c = (BaseArray# c ~ ByteArray#)
 
 type TokenTag c = Tag (Token c)
 

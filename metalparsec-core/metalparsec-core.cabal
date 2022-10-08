@@ -108,6 +108,7 @@ library
         Text.Metalparsec.Internal.Combinators
         Text.Metalparsec.Internal.Text
         Text.Metalparsec.Internal.C
+      Text.Metalparsec.Prim
       Text.Metalparsec.Token
       Text.Metalparsec.Text
         Text.Metalparsec.Text.Unsafe
