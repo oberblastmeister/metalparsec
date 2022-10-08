@@ -23,6 +23,8 @@ newtype Parsec c s e a = Parsec
       s ->
       (# s, Res# e a #)
   }
+  
+type SimpleParsec c a = Parsec c () () a
 
 type Res# e a =
   (#

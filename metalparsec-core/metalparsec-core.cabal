@@ -57,12 +57,12 @@ common common-options
     ExistentialQuantification,
     TypeOperators,
     OverloadedLabels,
-    ImpredicativeTypes,
     MagicHash,
     UnboxedTuples,
     RoleAnnotations,
     TypeInType,
     PatternGuards,
+    DoAndIfThenElse, 
   ghc-options:
     -Wall
     -Wincomplete-record-updates

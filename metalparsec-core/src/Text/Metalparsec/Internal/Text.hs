@@ -1,6 +1,7 @@
 module Text.Metalparsec.Internal.Text where
 
 import Control.Monad (void)
+import qualified Data.List as List
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word8)
@@ -8,7 +9,7 @@ import GHC.Exts
 import qualified GHC.Exts as Exts
 import GHC.Stack (HasCallStack)
 import Text.Metalparsec.Internal
-import Text.Metalparsec.Internal.Chunk (ByteChunk)
+import Text.Metalparsec.Internal.Chunk (ByteChunk, Chunk)
 import qualified Text.Metalparsec.Internal.SizedCompat as S
 import qualified Text.Metalparsec.Internal.Utf8 as Utf8
 import Text.Metalparsec.Internal.Util
@@ -221,3 +222,32 @@ readInt = Parsec $ \(Env# c l) (Ix# o i) s ->
   STR# s $# case readInt# (# c, l #) i of
     (# (# #) | #) -> Fail#
     (# | (# n, i' #) #) -> Ok# (Ix# (o +# (i' -# i)) i') (I# n)
+
+data LineCol = LineCol
+  { lcLine :: !Int,
+    lcCol :: !Int
+  }
+
+-- | Compute corresponding line and column numbers for each `Pos` in a list. Throw an error
+-- on invalid positions. Note: computing lines and columns may traverse the `Chunk`,
+-- but it traverses it only once regardless of the length of the position list.
+zipLineCols :: forall c a. (Chunk c, ByteChunk c) => c -> [(a, Pos)] -> [(a, Pos, LineCol)]
+zipLineCols str poss =
+  case evalParser @c (go 0 0 sorted) () str of
+    Ok res -> snd <$> List.sortOn fst res
+    _ -> error "invalid position"
+  where
+    go :: Int -> Int -> [(Int, (a, Pos))] -> SimpleParsec c [(Int, (a, Pos, LineCol))]
+    go !_line !_col [] = pure []
+    go line col poss@((i, (x, pos)) : poss') = do
+      p <- getPos
+      if pos == p
+        then ((i, (x, pos, LineCol line col)) :) <$> go line col poss'
+        else do
+          c <- anyChar
+          if '\n' == c
+            then go (line + 1) 0 poss
+            else go line (col + 1) poss
+
+    sorted :: [(Int, (a, Pos))]
+    sorted = List.sortOn (snd . snd) (zip [0 ..] poss)

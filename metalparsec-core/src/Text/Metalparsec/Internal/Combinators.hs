@@ -108,8 +108,8 @@ some_ p = Exts.inline (>>) p (many_ p)
 infixr 3 <|>
 
 -- | Branch on a Parsec: if the first argument succeeds, continue with the second, else with the third.
---   This can produce slightly more efficient code than `(<|>)`. Moreover, `ḃranch` does not
---   backtrack from the true/false cases.
+-- This can produce slightly more efficient code than `(<|>)`. Moreover, `ḃranch` does not
+-- backtrack from the true/false cases.
 branch :: Parsec s i u a -> Parsec s i u b -> Parsec s i u b -> Parsec s i u b
 branch pa pt pf = Parsec $ \e p s -> case runParsec# pa e p s of
   STR# s r -> case r of
