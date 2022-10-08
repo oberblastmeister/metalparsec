@@ -17,6 +17,8 @@ import Text.Metalparsec.Internal.Util (pattern UnsafeText#)
 
 type Slice# (s :: UnliftedType) = (# s, Int#, Int# #)
 
+type Bytes# = Slice# ByteArray#
+
 type BaseSlice# s = Slice# (BaseArray# s)
 
 data Slice s = Slice !(BaseArray# s) !Int !Int

@@ -4,7 +4,7 @@ import Control.Monad (void)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word8)
-import GHC.Exts
+import GHC.Exts.Compat
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import qualified Text.Metalparsec.Internal.Chunk as Chunk
 import qualified Text.Metalparsec.Internal.SizedCompat as S
