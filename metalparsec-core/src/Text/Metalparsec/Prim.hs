@@ -5,8 +5,6 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word8)
 import GHC.Exts
-import qualified GHC.Exts as Exts
-import GHC.Stack (HasCallStack)
 import Text.Metalparsec.Internal.Chunk (ByteChunk)
 import qualified Text.Metalparsec.Internal.Chunk as Chunk
 import qualified Text.Metalparsec.Internal.SizedCompat as S
@@ -130,7 +128,6 @@ unsafeAsciiChar (C# ch) =
         ch' -> case ch `eqChar#` ch' of
           1# -> Ok# (i +# 1#) ()
           _ -> Fail#
-{-# INLINE unsafeAsciiChar #-}
 
 text :: ByteChunk c => Text -> Parsec c e ()
 text (UnsafeText# bs# off# len#) = Parsec $ \(Env# c l) i ->
@@ -247,14 +244,6 @@ fusedSatisfy f1 f2 f3 f4 = Parsec $ \(Env# c l) i ->
                         | let ch = C# (Utf8.char4# c1 c2 c3 c4), f4 ch -> Ok# (i +# 4#) ch
                         | otherwise -> Fail#
 {-# INLINE fusedSatisfy #-}
-
-isAsciiLetter :: Char -> Bool
-isAsciiLetter c = ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
-{-# INLINE isAsciiLetter #-}
-
-isAsciiDigit :: Char -> Bool
-isAsciiDigit c = '0' <= c && c <= '9'
-{-# INLINE isAsciiDigit #-}
 
 -- | Does not check if eof has been hit
 -- This can also result in invalid utf8.

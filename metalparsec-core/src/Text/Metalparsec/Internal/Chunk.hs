@@ -31,6 +31,8 @@ type TokenChunk c = (Chunk c, TokenOffset (Token c), NotText c)
 
 type ByteChunk c = (BaseArray# c ~ ByteArray#)
 
+type ByteSlicable c = Slicable# c ByteArray#
+
 type TokenTag c = Tag (Token c)
 
 type family NotText (s :: Type) :: Constraint where
