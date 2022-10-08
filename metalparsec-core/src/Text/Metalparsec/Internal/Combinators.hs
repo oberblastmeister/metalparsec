@@ -3,13 +3,13 @@ module Text.Metalparsec.Internal.Combinators
     cut,
     cutting,
     optional,
+    withOption,
     optional_,
     many_,
     some_,
     (<|>),
     branch,
     eof,
-    runParser,
     fail,
     slice,
     rest,
@@ -24,17 +24,6 @@ module Text.Metalparsec.Internal.Combinators
     chainPost,
     chainl1,
     chainr1,
-
-    -- * @from Text.Metalparsec.Internal@
-    err,
-    try,
-    tryWith,
-    withOff#,
-    withPos#,
-    getPos,
-    getState,
-    putState,
-    withOption,
   )
 where
 

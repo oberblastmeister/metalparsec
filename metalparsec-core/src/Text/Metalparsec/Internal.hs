@@ -259,6 +259,14 @@ instance (NFData e, NFData a) => NFData (Result e a) where
     Fail -> ()
     Err e -> rnf e
 
+newtype Pos = Pos {unPos :: Int}
+  deriving (Show, Eq, Ord)
+
+data Span = Span
+  { spanStart :: !Pos,
+    spanEnd :: !Pos
+  }
+
 withOff# :: (Int# -> Parsec c s e a) -> Parsec c s e a
 withOff# f = Parsec $ \e p@(Ix# o _) s -> runParsec# (f o) e p s
 {-# INLINE withOff# #-}
@@ -268,8 +276,15 @@ withPos# f = Parsec $ \e p@(Ix# _ i) s -> runParsec# (f i) e p s
 {-# INLINE withPos# #-}
 
 -- | Get the current position in the input.
-getPos :: Parsec c s e Int
-getPos = Parsec $ \_e p@(Ix# o _) s -> STR# s (Ok# p (I# o))
+getPos :: Parsec c s e Pos
+getPos = Parsec $ \_e p@(Ix# o _) s -> STR# s (Ok# p (Pos (I# o)))
+
+spanned :: Parsec c s e a -> Parsec c s e (a, Span)
+spanned p = do
+  p1 <- getPos
+  res <- p
+  p2 <- getPos
+  pure (res, Span p1 p2)
 
 -- -- | Get the current state
 getState :: Parsec c s e s
